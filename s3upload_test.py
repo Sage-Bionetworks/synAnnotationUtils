@@ -92,8 +92,7 @@ class S3BucketManager:
 
 def s3(args):
 	bucket = S3BucketManager(args.aws_key, args.aws_secret, "static.synapse.org")
-	bucket.uploadFiles(args.upload_path)
-
+	bucket.uploadFiles(args.upload_path, args.upload_prefix)
 
 def build_parser():
     """Builds the argument parser and returns the result."""
@@ -109,6 +108,8 @@ def build_parser():
     parser_s3.add_argument('-k' , '--aws_key',  dest='aws_key', help='AWS Key', required=True)
     parser_s3.add_argument('-s' , '--aws_secret', dest='aws_secret', help='AWS secret key', required=True)
     parser_s3.add_argument('-up', '--upload', dest='upload_path', type=str, default=None, required=True)
+    parser_s3.add_argument('-p',  '--prefix', dest='upload_prefix', type=str, default='scratch/',
+                           help = 'prefix adds the sub dir structure on S3 eg. test/ will add the file under test/ folder on s3 bucket')
     parser_s3.add_argument('--rememberMe', '--remember-me', dest='rememberMe', action='store_true', default=False,
             			   help='Cache credentials for automatic authentication for future interactions')
 #    parser_s3.add_argument('-r', '--recursive', action='store_true', default=False,
