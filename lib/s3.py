@@ -3,11 +3,38 @@
 import os
 import sys
 import ConfigParser
+import re
 from boto.s3.connection import S3Connection
 from boto.s3.connection import OrdinaryCallingFormat
 from boto.s3.key import Key
 
 CONFIG_FILE = os.path.join(os.path.expanduser('~'), '.synapseS3config')
+
+
+
+def get_FilesList(path,pattern=None):
+    """
+    traverse a dir recursively and find files with full paths
+    that match the given pattern
+    """
+    SUB='get_FilesList'
+    if pattern is None:
+        sys.stderr.write('[%s]: No pattern supplied..will return all the files' % (SUB))
+
+    SUB='get_FilesList'
+    found_files = []
+    for root,dirs,files in os.walk(path):
+        for basename in files:
+            if pattern is not None:
+                if re.search(pattern,basename):
+                    filename = str(os.path.join(root,basename))
+                    found_files.append(filename.strip())
+            else:
+                filename = str(os.path.join(root,basename))
+                found_files.append(filename.strip())
+
+    print '[%s]: Found %d files at %s' % ( SUB,len(found_files),path)
+    return found_files
 
 
 class bucketManager:
@@ -70,14 +97,29 @@ class bucketManager:
         file_url = '%s/%s/%s' % (self.aws_url_basepath, self.bucketname,key)
         return(file_url)
     
+    def uploadDir(self, dir_to_upload, prefix=None):
+        dirname = re.sub('.*/','',os.path.dirname(dir_to_upload))
+        files_list = get_FilesList(dir_to_upload)
+        upload_urls = {}
+        for f in files_list:
+            regex = ".+(" + re.escape(dirname) + '.*)'
+            m = re.search(regex,os.path.dirname(f))
+            addition_prefix = m.groups()[0]
+            temp_prefix = prefix + '/' + addition_prefix
+            url = self._uploadFile(f,temp_prefix)
+            upload_urls[f] = url
+            print 'Uploaded: %s \nURL: %s \n--- \n' % (f, url)
+        return(upload_urls)
+
     def uploadFiles(self, file_list, prefix=None):
-        output = {}
+        paths = {}
         if not isinstance(file_list, (list, tuple)):
             file_list = [file_list]
         for f in file_list:
             url = self._uploadFile(f,prefix)
-            output[f] = url
+            paths[f] = url
             print 'Uploaded: %s \nURL: %s \n--- \n' % (f, url)
+        return paths
     
     def _bucketExists(self, bucket_name):
         return self.aws_connection.lookup(bucket_name) != None
