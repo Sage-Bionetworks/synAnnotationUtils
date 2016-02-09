@@ -128,7 +128,6 @@ def correctAnnot(correctionsFile, project,syn){
 				kKey = items.pop(0)
 				old = items.pop(0)
 				sql = 'select id,%s from file where projectId=="%s" and file.%s=="%s"' % (kKey,project,kKey,old)
-				print sql
 				results = syn.chunkedQuery(sql)
 				for result in results:
 					temp = syn.getAnnotations(result['file.id'])
