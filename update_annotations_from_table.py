@@ -129,8 +129,9 @@ def main():
     import pandas
 
     parser = argparse.ArgumentParser("Update annotations on Synapse files from Synapse table-based metadata.")
-    parser.add_argument("-c", "--config", help="Config file", type=str)
-    parser.add_argument("--dry-run", help="Perform the requested command without updating anything in Synapse",
+    parser.add_argument("-c", "--config", help="YAML config file (requires dataType list, dataTypesToMetadataTable dict, and dataTypesToQuery dict).",
+                        ype=str)
+    parser.add_argument("--dry-run", help="Perform the requested command without updating anything in Synapse.",
                         action="store_true", default=False)
 
 
