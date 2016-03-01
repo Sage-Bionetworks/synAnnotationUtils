@@ -8,5 +8,5 @@ setup(name='pythonSynapseUtils',
       author='Abhishek Pratap, Kenny Daily, Kristen Dang, Xindi Guo',
       license='Apache',
       packages=['pythonSynapseUtils'],
-      install_requires=['synapseclient>1.0'],
+      install_requires=['synapseclient>1.2', 'PyYAML'],
       zip_safe=False)

@@ -1,10 +1,14 @@
 import yaml
 
 
-def checkAgainstDict(annotDict, project, syn){
-	''' Compares annotations in use in a project against those specified by a dictionary and prints the ones that do not match the dictionary.'''
-	yamlEnt = syn.get(annotDict)
-	annotations = yaml.load(file(yamlEnt.path))
+def checkAgainstDict(annotDictSynID, project, syn){
+	''' Compares annotations in use against dictionary.
+	
+	 Gets all annotation keys and values in use in a project and compares against those specified by a dictionary. Prints non-matching terms.
+	'''
+	yamlEnt = syn.get(annotDictSynID)
+	with open(yamlEnt.path) as f:
+	    annotations = yaml.load(f)
 
 	allKeysInProject = set()
 	allValsInProject = set()
@@ -16,14 +20,11 @@ def checkAgainstDict(annotDict, project, syn){
 		temp = syn.getAnnotations(result['file.id'])
 		for key in temp:
 			if key in systemKeysToExclude: continue
-			if not key in allKeysInProject:
-				allKeysInProject.add(key)
+			allKeysInProject.add(key)
 			if isinstance(temp[key], list):
 				for val in temp[key]:
-					if str(val) in allValsInProject: continue
 					allValsInProject.add(str(val))
 			else:
-				if str(temp[key]) in allValsInProject: continue
 				allValsInProject.add(str(temp[key]))
 
 	print 'Number of key terms in project: %d' % len(allKeysInProject)
@@ -37,15 +38,13 @@ def checkAgainstDict(annotDict, project, syn){
 			print '%s' % item
 
 
-	allValsInVocab = list()
-	for key in annotations:
-		temp = annotations[key]
-		if isinstance(temp, list):
-			for element in temp:
-				allValsInVocab.append(str(element))
+	allValsInVocab = set()
+	for key, vl in annotations.iteritems():
+		if isinstance(vl, list):
+			for element in vl:
+				allValsInVocab.add(str(element))
 		else:	
-			allValsInVocab.append(str(temp))
-	allUniqueValsInVocab = set(allValsInVocab)
+			allValsInVocab.add(str(vl))
 	if not allValsInProject <= allValsInVocab:
 		print 'Values in use that are not found in dictionary: '
 		for item in allValsInProject.difference(allValsInVocab):
@@ -64,11 +63,14 @@ def countQueryResults(sql,syn):
 	return count
 
 
-def countPerAnnot(annotDict, project, syn, grouping=None){
-	'''Counts number of items annotated to each key-value pair in the given dictionary within the given project.'''
+def countPerAnnot(annotDictSynID, project, syn, grouping=None){
+	'''Counts instances of key-value pairs.
 
-	yamlEnt = syn.get(annotDict)
-	annotations = yaml.load(file(yamlEnt.path))
+	Counts number of items annotated to each key-value pair in the given dictionary within the given project.'''
+
+	yamlEnt = syn.get(annotDictSynID)
+	with open(yamlEnt.path) as f:
+	    annotations = yaml.load(f)
 
 	if grouping is not None: # This block counts annotation terms stratified by one term as specified in argument 'grouping'
 
@@ -99,7 +101,9 @@ def countPerAnnot(annotDict, project, syn, grouping=None){
 
 
 def updateKey(oldKey,newKey,inAnnot):
-	'''Given a dictionary, replaces oldKey with newKey, keeping any existing value assigned to that term.'''
+	'''Replaces oldKey with newKey.
+	
+	Given a dictionary, replaces oldKey with newKey, keeping any existing value assigned to that term.'''
 
 	if oldKey in inAnnot:
 		inAnnot[newKey] = inAnnot[oldKey]
@@ -109,7 +113,9 @@ def updateKey(oldKey,newKey,inAnnot):
 
 
 def correctAnnot(correctionsFile, project,syn){
-	'''Given a tab-separated file containing annotations to be updated, changes annotations across a project. File contains one line per key-value pair, if line has two entries, they are assumed to be oldKey and newKey, if three entries, they are assumed to be key, oldValue, newValue.'''
+	'''Propagates annotation changes based on tab-delimited input.
+	
+	Given a tab-separated file containing annotations to be updated, changes annotations across a project. File contains one line per key-value pair, if line has two entries, they are assumed to be oldKey and newKey, if three entries, they are assumed to be key, oldValue, newValue.'''
 
 	with open(correctionsFile) as toChange:
 		for line in toChange:
