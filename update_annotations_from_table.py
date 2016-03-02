@@ -125,6 +125,29 @@ def updateAnnots(synid, lookupDict, syn):
     # setAnnotations does a syn.store, so not explicitly needed
     foo = syn.setAnnotations(o, newa)
 
+def getSynapseTableData(synId):
+    """Get all rows from a Synapse Table as a Pandas DataFrame.
+
+    """
+
+    metaSchema = syn.get(synId)
+    metaResults = syn.tableQuery("select * from %s" % metaSchema.id)
+    return metaResults.asDataFrame()
+
+def doMerge(fileTbl, meta):
+    """Merge file table and metadata table together and add index.
+
+    """
+
+    merged = pd.merge(left=fileTbl[['id', 'UID']], right=meta,
+                      how="left", left_on="UID", right_on="UID")
+
+    # Set a new index and drop it as a column
+    merged.index = merged.id
+    merged.drop("id", axis=1, inplace=True)
+
+    return merged
+
 def main():
 
     import yaml
@@ -156,9 +179,7 @@ def main():
 
         # Metadata
         logger.info("Getting %s metadata" % dataType)
-        metaSchema = syn.get(dataTypesToMetadataTable[dataType])
-        metaResults = syn.tableQuery("select * from %s" % metaSchema.id)
-        meta = metaResults.asDataFrame()
+        meta = getSynapseTableData(dataTypesToMetadataTable[dataType])
 
         # All files
         logger.info("Getting %s file list" % dataType)
@@ -166,12 +187,7 @@ def main():
 
         # Merge metadata and files
         logger.info("Merging %s" % dataType)
-        merged = pd.merge(left=fileTbl[['id', 'UID']], right=meta,
-                          how="left", left_on="UID", right_on="UID")
-
-        # Set a new index and drop it as a column
-        merged.index = merged.id
-        merged.drop("id", axis=1, inplace=True)
+        merged = doMerge(fileTbl, meta)
 
         # Transpose the data and convert it to a dictionary, fix individual entries
         mergedDict = merged.transpose().to_dict()
