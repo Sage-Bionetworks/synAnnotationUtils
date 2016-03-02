@@ -1,15 +1,20 @@
-"""This script updates all file annotations a project.
+"""Updates annotations for Files in a Synapse Project.
 
-There are four required file annotations for any assay file uploaded to Synapse.
+~~~~~~~~~~~~~
+Prerequisites
+~~~~~~~~~~~~~
+
+This script is appropriate when you have a Project full of files that have a minimal amount of annotations
+and a way to map between those annotations and a larger set of annotations you want to have on them.
+
+The required file annotations for an assay file uploaded to Synapse to be used in this script are:
 
 `UID` - a universal ID for the sample represented in the file
 `dataType`: `mRNA`, `miRNA`, `methylation`, etc.
-`fileType`: `bam`, `fastq`, etc.
-`fileSubType`: is `fileType`-specific; e.g., `bam` can have `mapped` or `unmapped`.
 
 This script uses the `dataType` field to get assay-specific files (using a query lookup dictionary `assayToQuery`),
 and then the `UID` to merge existing file annotations and the table metadata (which is obtained through a lookup
-dictionary `assayToMetadataTable`.
+dictionary `assayToMetadataTable`. These data structures should be set in a YAML config file to be passed in.
 
 """
 
@@ -68,7 +73,7 @@ def query2df(queryContent, filterSynapseFields=True, savedSynapseFields = ('id',
     return pd.DataFrame(queryContent)
 
 def fixDict(d):
-    """Fix dictionaries having .
+    """Fix dictionaries having lists and nans.
 
     """
 
