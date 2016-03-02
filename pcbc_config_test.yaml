@@ -1,0 +1,8 @@
+projectId: syn1773109
+
+dataTypes:
+    - mRNA
+
+dataTypesToMetadataTable: {mRNA: syn3156503}
+
+dataTypesToQuery: {mRNA: "select id,UID from file where projectId=='syn1773109' AND dataType=='mRNA' AND fileType=='fastq'"}
