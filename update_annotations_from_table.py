@@ -32,7 +32,6 @@ ch.setFormatter(formatter)
 logger.addHandler(ch)
 
 from multiprocessing.dummy import Pool
-mp = Pool(10)
 
 import synapseclient
 
@@ -135,7 +134,8 @@ def main():
 
     parser = argparse.ArgumentParser("Update annotations on Synapse files from Synapse table-based metadata.")
     parser.add_argument("-c", "--config", help="YAML config file (requires dataType list, dataTypesToMetadataTable dict, and dataTypesToQuery dict).",
-                        ype=str)
+                        type=str)
+    parser.add_argument("-t", "--threads", help="Number of threads to use [default: %(default)s].", type=int, default=2)
     parser.add_argument("--dry-run", help="Perform the requested command without updating anything in Synapse.",
                         action="store_true", default=False)
 
@@ -149,6 +149,8 @@ def main():
     dataTypes = config['dataTypes']
     dataTypesToMetadataTable = config['dataTypesToMetadataTable']
     dataTypesToQuery = config['dataTypesToQuery']
+
+    mp = Pool(10)
 
     for dataType in dataTypes:
 
