@@ -150,7 +150,7 @@ def main():
     dataTypesToMetadataTable = config['dataTypesToMetadataTable']
     dataTypesToQuery = config['dataTypesToQuery']
 
-    mp = Pool(10)
+    mp = Pool(args.threads)
 
     for dataType in dataTypes:
 
