@@ -117,13 +117,15 @@ def updateAnnots(synid, lookupDict, syn):
     o = syn.get(synid, downloadFile=False)
     a = syn.getAnnotations(o)
 
-    # Make a copy so updates do notaffect the original
+    # Make a copy so updates do not affect the original
     newa = a.copy()
 
     newa = updateDict(newa, lookupDict[o.properties.id])
 
     # setAnnotations does a syn.store, so not explicitly needed
     foo = syn.setAnnotations(o, newa)
+
+    return o
 
 def getSynapseTableData(synId):
     """Get all rows from a Synapse Table as a Pandas DataFrame.
