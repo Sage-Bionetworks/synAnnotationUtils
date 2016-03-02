@@ -1,4 +1,4 @@
-"""This notebook updates all file annotations a project.
+"""This script updates all file annotations a project.
 
 There are four required file annotations for any assay file uploaded to Synapse.
 
