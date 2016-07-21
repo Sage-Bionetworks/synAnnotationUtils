@@ -21,6 +21,11 @@
  $ python crosscheck_csvs.py --file-ids ids.txt --file-keys keys.txt \
         --keys extraKey
 
+ Notice that the key names you are comparing must be the same in all
+ the csv files - i.e., you cannot compare individual_entity_id in
+ a.csv with Individual_id in b.csv (but you can compare Individual_id
+ in a.csv with Individual_id in b.csv).
+
  If there are missing values, the script will output something
  that looks like this:
 
