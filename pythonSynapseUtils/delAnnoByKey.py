@@ -10,7 +10,9 @@ def delAnnoByKey(syn,synId,keyList):
     :param syn:            A Synapse object: syn = synapseclient.login()- Must be logged into synapse
     :param synId:          A Synapse ID of Project, Folder, or File
     :param keyList:        A list of annotations keys that needs to be deleted
+
     Example:
+    
        delAnnoByKey(syn,"syn12345",["dataType","projectName","sampleId"])
        
     """
@@ -23,7 +25,7 @@ def delAnnoByKey(syn,synId,keyList):
         for dirpath,dirname,filename in directory:
             for i in filename:
                 temp = syn.get(i[1],downloadFile = False)
-                print "Getting file %s ..." % i[1]
+                print "Getting File %s ..." % i[1]
                 _helperDelAnnoByKey(syn,temp,keyList)
         
 def _helperDelAnnoByKey(syn,temp,keyList):

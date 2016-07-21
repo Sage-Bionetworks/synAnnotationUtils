@@ -11,14 +11,14 @@ def auditCommonDict(syn, synId, annoDict):
     Audit entity annotations against common dictionary shared among all enities
     :param syn:            A Synapse object: syn = synapseclient.login()- Must be logged into synapse
     :param synId:          A Synapse ID of Project, Folder, or File
-    :param annoDict        A dict object of annotations shared among entities
+    :param annoDict        A dict of annotations shared among entities
     
     Return:
       If synId is an ID of a Project/Folder
         entityMissAllAnno:     A list of Synapse IDs that have not been annotatd
-        incorrectAnnoated:     A dict object where key is the annotation key and value is a list of entities 
+        incorrectAnnoated:     A dict where key is the annotation key and value is a list of entities 
                                that were annotated incorrectly (i.e. {"sampleId":["syn1","syn2"]})
-        missedAnno:            A dict object where key is the annotation key and value is a list of entities
+        missedAnno:            A dict where key is the annotation key and value is a list of entities
                                that were missing the annotation (i.e. {"dataType":["syn3","syn4"]})
       If synId is an ID of a File
         entityMissAllAnno:     A boolean if synID is a ID of a File
@@ -26,13 +26,16 @@ def auditCommonDict(syn, synId, annoDict):
         missedAnno:            A list of keys were missing the entity annotation
         
     Example:
+
        entityMissAllAnno, incorrectAnnoated, missingAnno = 
                auditCommonDict(syn,"syn12345",{"dataType":"testing","projectName":"foo"})
        
     """
+
     entityMissAllAnno = []
     incorrectAnnotated = {}
     missingAnno = {}
+
     starting = syn.get(synId,downloadFile = False)
     if not is_container(starting):
         print "%s is a File \n" % synId
@@ -95,19 +98,23 @@ def dict_compare(d1, d2):
 # Update Annotations by Dictionary
 def updateAnnoByDict(syn,synId,annoDict):
     """
-    Update annotations by giving a dict object
+    Update annotations by giving a dict
     :param syn:            A Synapse object: syn = synapseclient.login()- Must be logged into synapse
     :param synId:          A Synapse ID of Project, Folder, or File OR a list of Synpase IDs of File
-    :param annoDict        A dict object of annotations
+    :param annoDict        A dict of annotations
+    
     Example:
+
        updateAnnoByDict(syn,"syn12345",{"dataType":"testing","projectName":"foo"})
        OR
        updateAnnoByDict(syn,["syn1","syn2"],{"dataType":"testing","projectName":"foo"})
        
     """
+    
     if type(synId) is list:
         print "Input is a list of Synapse IDs"
         for synID in synId:
+            print "Getting File %s ..." % synID
             temp = syn.get(synID,downloadFile = False)
             _helperUpdateAnnoByDict(syn,temp,annoDict)
     else:
