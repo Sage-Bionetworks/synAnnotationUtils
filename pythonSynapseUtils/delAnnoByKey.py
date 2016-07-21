@@ -16,7 +16,7 @@ def delAnnoByKey(syn,synId,keyList):
     """
     starting = syn.get(synId,downloadFile = False)
     if not is_container(starting):
-        print "%s is a File" % synId
+        print "%s is a File \n" % synId
         _helperDelAnnoByKey(syn,starting,keyList)
     else:
         directory = synu.walk(syn,synId)
