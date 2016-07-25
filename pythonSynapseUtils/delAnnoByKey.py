@@ -1,4 +1,5 @@
 import synapseclient
+from synapseclient.entity import is_container
 syn = synapseclient.login()
 
 import synapseutils as synu
@@ -16,7 +17,7 @@ def delAnnoByKey(syn,synId,keyList):
        
     """
 
-    print "Delte entity annotations by key(s) - %s" % ", ".join(keyList)
+    print "Delte entity annotations by key(s) - \n %s" % "\n".join(keyList)
     starting = syn.get(synId,downloadFile = False)
     if not is_container(starting):
         print "%s is a File \n" % synId

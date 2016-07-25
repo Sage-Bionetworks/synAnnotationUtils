@@ -5,7 +5,7 @@ syn = synapseclient.login()
 import synapseutils as synu
 
 # Audit common dictionary
-def auditCommonDict(syn, synId, annoDict):
+def auditByCommonDict(syn, synId, annoDict):
     """
     Audit entity annotations against common dictionary shared among all enities
     :param syn:            A Synapse object: syn = synapseclient.login()- Must be logged into synapse
@@ -94,7 +94,8 @@ def dict_compare(d1, d2):
     return added, removed, modified
 
 
-# Update Annotations by Dictionary
+# Update Annotations 
+## by dict
 def updateAnnoByDict(syn,synId,annoDict):
     """
     Update annotations by giving a dict
@@ -111,13 +112,13 @@ def updateAnnoByDict(syn,synId,annoDict):
     """
     
     if type(synId) is list:
-        print "Input is a list of Synapse IDs"
+        print "Input is a list of Synapse IDs \n"
         for synID in synId:
             print "Getting File %s ..." % synID
             temp = syn.get(synID,downloadFile = False)
             _helperUpdateAnnoByDict(syn,temp,annoDict)
     else:
-        print "Input is a Synpase ID"
+        print "Input is a Synpase ID \n"
         starting = syn.get(synId,downloadFile = False)
         if not is_container(starting):
             print "%s is a File \n" % synId
@@ -134,4 +135,30 @@ def _helperUpdateAnnoByDict(syn,temp,annoDict):
     print "> Updating annotations..."
     temp.annotations.update(annoDict)
     temp = syn.store(temp,forceVersion = False)
-    print ""
+    print "Completed. \n"
+
+
+## by idDict
+def updateAnnoByIdDictFromDict(syn,idDict,annoDict):
+    
+    """
+    Update annotations from dictionary
+    by a given dict(key:annotation keys need to updated, value:a list of Synpase IDs)
+    
+    :param syn:            A Synapse object: syn = synapseclient.login()- Must be logged into synapse
+    :param idDict:         A dict.Key is the annotations key, value is a list of Synapse IDs
+    :param annoDict        A dict of annotations
+
+    Example:
+
+        updateAnnoByIdDictFromDict(syn,{"dataType":["syn1","syn2"]},{"dataType":"csv","test":"TRUE"})
+       
+    """
+    for key in idDict:
+        print "updating annotaion values for key: %s" % key
+        for synId in idDict[key]:
+            print "> %s" %synId
+            temp = syn.get(synId, downloadFile = False)
+            temp[key] = annoDict[key]
+            temp = syn.store(temp,forceVersion = False)
+        print ""
