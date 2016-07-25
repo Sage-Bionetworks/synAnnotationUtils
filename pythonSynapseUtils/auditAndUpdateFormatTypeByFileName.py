@@ -126,22 +126,25 @@ def _helperUpdateFormatTypeByFileName(syn,temp,annoKey,annoDict):
         print "> ERROR: file type not found in file types dictionary"
     print ""
 
-def mergeSameKeyDicts(listDicts):
+def mergeDicts(dictList):
     """
-    A helper function to merge the results of auditFormatTypeByFileName
-    :param syn:            A list of dicts from auditFormatTypeByFileName
+    A helper function to merge multiple dicts
+    :param syn:            A list of dicts 
     
     Return:
         A merged dict
         
     Example:
     
-       result = mergeSameKeyDicts([dict1,dict2,dict3])
+       result = mergeDicts([dict1,dict2,dict3])
        
     """
-    result = {"incorrect":[],"missingInAnno":[],"missingInDict":[]}
-    for li in listDicts:
-        for k in li.keys():
-            for vl in li[k]:
-                result[k].append(vl)
+    result = {}
+    for d in dictList:
+        for k in d.keys():
+            if k in result.keys():
+                for v in d[k]:
+                    result[k].append(v)
+            else:
+                result[k] = d[k]
     return result

@@ -3,7 +3,6 @@ from synapseclient.entity import is_container
 syn = synapseclient.login()
 
 import synapseutils as synu
-import pandas as pd
 
 # Audit common dictionary
 def auditCommonDict(syn, synId, annoDict):
