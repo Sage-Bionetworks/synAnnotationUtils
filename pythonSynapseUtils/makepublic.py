@@ -1,3 +1,8 @@
+""" Make private Files public by changing their local permissions
+    or moving them to a public folder.
+
+Author: Phil Snyder (July, 2016)
+"""
 import synapseclient
 from synapseclient.__main__ import move
 import argparse
