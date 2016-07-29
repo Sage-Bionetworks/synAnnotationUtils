@@ -37,6 +37,7 @@ def auditAgainstMetadata(syn, synId, metaDf, refCol, cols2Check,fileExts):
     entityMissMetadata = []
     incorrectAnnotated = {}
     missingAnno = {}
+    print "Check annotations against metadata.\n"
     starting = syn.get(synId,downloadFile = False)
     if not is_container(starting):
         print "%s is a File \n" % synId
@@ -154,9 +155,9 @@ def _helperUpdateAnnoByMetadata(syn,temp,metaDf,refCol,cols2Add,fileExts):
         print "missing metadata"
     else:
         for colName in cols2Add:
-            print ">%s updating..." % colName
+            print "> %s " % colName
             temp[colName] = map(str,row[colName])[0]
-    temp = syn.store(temp, forceVersion = False)
+        temp = syn.store(temp, forceVersion = False)
     print ""
 
 

@@ -5,7 +5,7 @@ syn = synapseclient.login()
 import synapseutils as synu
 
 # Audit common dictionary
-def auditByCommonDict(syn, synId, annoDict):
+def auditCommonDict(syn, synId, annoDict):
     """
     Audit entity annotations against common dictionary shared among all enities
     :param syn:            A Synapse object: syn = synapseclient.login()- Must be logged into synapse
@@ -34,7 +34,7 @@ def auditByCommonDict(syn, synId, annoDict):
     entityMissAllAnno = []
     incorrectAnnotated = {}
     missingAnno = {}
-
+    print "Check annotations against common dictionary. \n"
     starting = syn.get(synId,downloadFile = False)
     if not is_container(starting):
         print "%s is a File \n" % synId
@@ -53,7 +53,7 @@ def auditByCommonDict(syn, synId, annoDict):
         return entityMissAllAnno,incorrectAnnotated,missingAnno
                 
 def _helperAuditCommonDict(syn, temp, annoDict,entityMissAllAnno,incorrectAnnotated,missingAnno):
-    print "Checking annotations against common dictionary..."
+    print "Checking..."
     tempDict = temp.annotations
     tempId = temp.id
     if bool(tempDict):
@@ -79,6 +79,8 @@ def _helperAuditCommonDict(syn, temp, annoDict,entityMissAllAnno,incorrectAnnota
                     incorrectAnnotated[annoKey] = [tempId]
             print ">Values: incorrect in entity annotations"
             print ">>"+", ".join(str(x) for x in modified)
+        if len(added)+len(removed)+len(modified) == 0:
+            print "Pass."
     else:
         print ">Annotations: missing"
         entityMissAllAnno.append(tempId)
