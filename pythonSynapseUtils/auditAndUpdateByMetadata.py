@@ -73,7 +73,7 @@ def _helperAuditMetadata(syn,temp,metaDf,refCol,cols2Check,fileExts,
     tempName = re.sub(exts,"",temp.name)
     
     if bool(tempDict):
-        row = df.loc[df[refCol] == tempName]
+        row = metaDf.loc[metaDf[refCol] == tempName]
         if row.empty:
             entityMissMetadata.append(tempId)
             print "missing metadata"
@@ -190,3 +190,64 @@ def updateAnnoByIdDictFromMeta(syn,idDict,metaDf,refCol,fileExts):
             temp[key] = map(str,row[key])[0]
             temp = syn.store(temp,forceVersion = False)
         print ""
+
+
+# Search function
+def searchInMetadata(syn, synId, metaDf, refCol,col2Check,values2Check,fileExts):
+    """
+    Search for a list of Synapse IDs with a given column and expected values
+    :param syn:            A Synapse object: syn = synapseclient.login()- Must be logged into synapse
+    :param synId:          A Synapse ID of Project, Folder
+    :param metaDf          A pandas data frame of entity metadata
+    :param refCol          A name of the column in metaDf that matching one of the entity attributes
+    :param col2Check       A name of the column in metaDf you are seaching
+    :param values2Check    A list of values you are searching
+    :param fileExts        A list of all file extensions (PsychENCODE ONLY!!!) 
+    
+    Return:
+      A list of Synapse IDs
+        
+    Example:
+       IDs = searchInMetadata(syn,"syn123",metadata,"id","tester",["foo","bar"],[".bam",".csv"])
+       
+    """
+    synapseIds = []
+    print "Search in metadata for key: %s \n" % col2Check
+    starting = syn.get(synId,downloadFile = False)
+    if not is_container(starting):
+        print "ERROR: %s is not a Synapse ID of Project or Folder" % synId
+    else:
+        directory = synu.walk(syn,synId)
+        for dirpath,dirname,filename in directory:
+            for i in filename:
+                temp = syn.get(i[1],downloadFile = False)
+                print "Getting File %s ..." % i[1]
+                _helperSearchInMetadata(syn,temp,metaDf,refCol,col2Check,values2Check,fileExts,synapseIds)
+                                    
+        return synapseIds
+
+def _helperSearchInMetadata(syn, temp,metaDf, refCol,col2Check,values2Check,fileExts,synapseIds):
+    """
+    This helper function is built for PsychENCODE project data release. 
+    The entity name without extension is map to a column in the metadata data frame
+       
+    """
+    
+    print "Searching in metadata..."
+    tempDict = temp.annotations
+    tempId = temp.id
+    exts = ')|('.join(fileExts)
+    exts = r'(' + exts + ')'
+    tempName = re.sub(exts,"",temp.name)
+    
+    if bool(tempDict):
+        row = metaDf.loc[metaDf[refCol] == tempName]
+        if row.empty:
+            print "missing metadata"
+        else:
+            if map(str,row[col2Check])[0] in values2Check:
+                synapseIds.append(tempId)
+                print ">>Found!"
+            else:
+                print ">>Passed."
+    print ""
