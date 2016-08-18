@@ -150,7 +150,7 @@ def _helperUpdateAnnoByMetadata(syn,temp,metaDf,refCol,cols2Add,fileExts):
     exts = r'(' + exts + ')'
     tempName = re.sub(exts,"",temp.name)
     
-    row = df.loc[df[refCol] == tempName]
+    row = metaDf.loc[metaDf[refCol] == tempName]
     if row.empty:
         print "missing metadata"
     else:
