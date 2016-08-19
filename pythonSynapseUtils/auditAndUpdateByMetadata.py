@@ -1,6 +1,5 @@
 import synapseclient
 from synapseclient.entity import is_container
-syn = synapseclient.login()
 
 import synapseutils as synu
 import pandas as pd
