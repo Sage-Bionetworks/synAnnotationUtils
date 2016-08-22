@@ -156,10 +156,10 @@ def correctAnnot(syn,synId,projSynId,correctionsFile):
 				directory = synu.walk(syn,synId)
 				for dirpath,dirname,files in directory:
 					for item in files:
-					temp = syn.getAnnotations(item[1])
-					if old not in temp: continue
-					correctedAnnotations = updateKey(oldKey=old,newKey=new,inAnnot=temp)
-					savedAnnotations = syn.setAnnotations(result['file.id'],correctedAnnotations)
+						temp = syn.getAnnotations(item[1])
+						if old not in temp: continue
+						correctedAnnotations = updateKey(oldKey=old,newKey=new,inAnnot=temp)
+						savedAnnotations = syn.setAnnotations(result['file.id'],correctedAnnotations)
 			elif len(items) > 2: # update values
 				kKey = items.pop(0)
 				old = items.pop(0)
