@@ -16,7 +16,7 @@ def auditAgainstMetadata(syn, synId, metaDf, refCol, cols2Check,fileExts):
     :param cols2Check      A list of columns in metaDf need to be audited with entity annotations 
     :param fileExts        A list of all file extensions (PsychENCODE ONLY!!!) 
     
-    Return:
+    A generator that contains:
       If synId is an ID of a Project/Folder
         entityMissMetadata:    A list of Synapse IDs that have no matching metadata
         incorrectAnnoated:     A dict object where key is the annotation key and value is a list of entities 
@@ -29,8 +29,8 @@ def auditAgainstMetadata(syn, synId, metaDf, refCol, cols2Check,fileExts):
         missedAnno:            A list of keys were not annotated
         
     Example:
-       entityMissMetadata,incorrectAnnotated, missingAnno = 
-               auditAgainstMetadata(syn,"syn12345",metadata,"id",["dataType","tester"],[".bam",".csv"])
+       result = auditAgainstMetadata(syn,"syn12345",metadata,"id",["dataType","tester"],[".bam",".csv"])
+       entityMissMetadata,incorrectAnnotated, missingAnno = result.next()
        
     """
     entityMissMetadata = []
@@ -45,7 +45,7 @@ def auditAgainstMetadata(syn, synId, metaDf, refCol, cols2Check,fileExts):
         noMeta = False
         if len(entityMissMetadata):
             noMeta = True
-        return noMeta,incorrectAnnotated.keys(),missingAnno.keys()
+        yield noMeta,incorrectAnnotated.keys(),missingAnno.keys()
     else:
         directory = synu.walk(syn,synId)
         for dirpath,dirname,filename in directory:
@@ -54,7 +54,7 @@ def auditAgainstMetadata(syn, synId, metaDf, refCol, cols2Check,fileExts):
                 print "Getting File %s ..." % i[1]
                 _helperAuditMetadata(syn,temp,metaDf,refCol,cols2Check,fileExts,
                                      entityMissMetadata,incorrectAnnotated,missingAnno)
-        return entityMissMetadata,incorrectAnnotated,missingAnno
+        yield entityMissMetadata,incorrectAnnotated,missingAnno
 
 def _helperAuditMetadata(syn,temp,metaDf,refCol,cols2Check,fileExts,
                          entityMissMetadata,incorrectAnnotated,missingAnno):
@@ -66,7 +66,7 @@ def _helperAuditMetadata(syn,temp,metaDf,refCol,cols2Check,fileExts,
     
     print "Checking annotations against metadata..."
     tempDict = temp.annotations
-    tempId = temp.id
+    
     exts = ')|('.join(fileExts)
     exts = r'(' + exts + ')'
     tempName = re.sub(exts,"",temp.name)
@@ -74,7 +74,7 @@ def _helperAuditMetadata(syn,temp,metaDf,refCol,cols2Check,fileExts,
     if bool(tempDict):
         row = metaDf.loc[metaDf[refCol] == tempName]
         if row.empty:
-            entityMissMetadata.append(tempId)
+            entityMissMetadata.append(temp)
             print "missing metadata"
         else:
             for colName in cols2Check:
@@ -82,17 +82,17 @@ def _helperAuditMetadata(syn,temp,metaDf,refCol,cols2Check,fileExts,
                 if colName in tempDict.keys():
                     if map(str,row[colName])[0] != temp[colName][0]:
                         if colName in incorrectAnnotated.keys():
-                            incorrectAnnotated[colName].append(tempId)
+                            incorrectAnnotated[colName].append(temp)
                         else:
-                            incorrectAnnotated[colName] = [tempId]
+                            incorrectAnnotated[colName] = [temp]
                         print ">>incorrect"
                     else:
                         print ">>Passed!"
                 else:
                     if colName in missingAnno.keys():
-                        missingAnno[colName].append(tempId)
+                        missingAnno[colName].append(temp)
                     else:
-                        missingAnno[colName] = [tempId]
+                        missingAnno[colName] = [temp]
                     print ">>missing"
     print ""
 
@@ -103,7 +103,7 @@ def updateAnnoByMetadata(syn, synId, metaDf, refCol, cols2Add,fileExts):
     """
     Audit entity annotations against metadata
     :param syn:            A Synapse object: syn = synapseclient.login()- Must be logged into synapse
-    :param synId:          A Synapse ID of Project, Folder, or File OR a list of Synpase IDs of File
+    :param synId:          A Synapse ID of Project, Folder, or File OR a list of Synpase Objects
     :param metaDf          A pandas data frame of entity metadata
     :param refCol          A name of the column in metaDf that matching one of the entity attributes
     :param cols2Add        A list of columns in metaDf need to be added as entity annotations 
@@ -116,10 +116,10 @@ def updateAnnoByMetadata(syn, synId, metaDf, refCol, cols2Add,fileExts):
     """
     
     if type(synId) is list:
-        print "Input is a list of Synapse IDs \n"
+        print "Input is a list of Synapse Objects \n"
         for synID in synId:
             print "Getting File %s ..." % synID
-            temp = syn.get(synID,downloadFile = False)
+            temp = synID
             _helperUpdateAnnoByMetadata(syn,temp,metaDf,refCol,cols2Add,fileExts)
     else:
         print "Input is a Synpase ID \n"
@@ -165,7 +165,7 @@ def updateAnnoByIdDictFromMeta(syn,idDict,metaDf,refCol,fileExts):
     
     """
     Update annotations from metadata 
-    by a given dict(key:annotation keys need to updated, value:a list of Synpase IDs)
+    by a given dict(key:annotation keys need to updated, value:a list of Synpase Objects)
     
     :param syn:            A Synapse object: syn = synapseclient.login()- Must be logged into synapse
     :param idDict:         A dict.Key is the annotations key, value is a list of Synapse IDs
@@ -181,7 +181,7 @@ def updateAnnoByIdDictFromMeta(syn,idDict,metaDf,refCol,fileExts):
         print "updating annotaion values for key: %s" % key
         for synId in idDict[key]:
             print "> %s" %synId
-            temp = syn.get(synId, downloadFile = False)
+            temp = synId
             exts = ')|('.join(fileExts)
             exts = r'(' + exts + ')'
             tempName = re.sub(exts,"",temp.name)
