@@ -96,8 +96,8 @@ def updateFormatTypeByFileName(syn,synId,annoKey,annoDict):
     if type(synId) is list:
         print "Input is a list of Synapse Objects \n"
         for synID in synId:
-            print "Getting File %s ..." % synID
             temp = synID
+            print "Accessing File %s ..." % temp.id
             _helperUpdateFormatTypeByFileName(syn,temp,annoKey,annoDict)
     else:
         print "Input is a Synpase ID \n"

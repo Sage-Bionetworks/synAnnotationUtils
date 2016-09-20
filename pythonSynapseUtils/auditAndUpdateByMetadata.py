@@ -118,8 +118,8 @@ def updateAnnoByMetadata(syn, synId, metaDf, refCol, cols2Add,fileExts):
     if type(synId) is list:
         print "Input is a list of Synapse Objects \n"
         for synID in synId:
-            print "Getting File %s ..." % synID
             temp = synID
+            print "Accessing File %s ..." % temp.id
             _helperUpdateAnnoByMetadata(syn,temp,metaDf,refCol,cols2Add,fileExts)
     else:
         print "Input is a Synpase ID \n"
