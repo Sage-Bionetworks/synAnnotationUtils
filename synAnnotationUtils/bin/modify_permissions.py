@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """ Change permissions on a set of Files.
 
 Author: Phil Snyder (August, 2016)
