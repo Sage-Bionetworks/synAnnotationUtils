@@ -13,7 +13,7 @@ def auditFormatTypeByFileName(syn,synId,annoKey,annoDict):
     :param annoDict        A dict where key is the extension of the filename, 
                            value is the corresponding file type value in entity annotations
     
-    Return:
+    A generator that contains:
     
       If synId is an ID of a Project/Folder
         A dict with 3 keys and each value is a list of File Synapse ID 
@@ -28,7 +28,8 @@ def auditFormatTypeByFileName(syn,synId,annoKey,annoDict):
     Example:
     
        result = auditFormatType(syn,"syn12345","fileType",{".bam":"bam", ".doc":"word", "bw":"bigwig"})
-       
+       result = result.next()
+
     """
     
     needAnnotated = {"incorrect":[],
@@ -62,16 +63,16 @@ def _helperAuditFormatTypeByFileName(syn,temp,annoKey,annoDict,needAnnotated):
             tempType = annoDict[ext]
             if annoKey in temp.annotations.keys():
                 if temp[annoKey][0] != tempType:
-                    needAnnotated["incorrect"].append(temp.id)
+                    needAnnotated["incorrect"].append(temp)
                     print ">Incorrect"
                 else:
                     print ">Passed!"
             else:
-                needAnnotated["missingInAnno"].append(temp.id)
+                needAnnotated["missingInAnno"].append(temp)
                 print "> Missing in entity annotations"
             break
     if tempType == "":
-        needAnnotated["missingInDict"].append(temp.id)
+        needAnnotated["missingInDict"].append(temp)
         print "> Missing file types dictionary"
     print ""
 
@@ -80,7 +81,7 @@ def updateFormatTypeByFileName(syn,synId,annoKey,annoDict):
     """
     Audit entity file type annotations
     :param syn:            A Synapse object: syn = synapseclient.login()- Must be logged into synapse
-    :param synId:          A Synapse ID of Project, Folder, or File OR a list of Synapse IDs of File
+    :param synId:          A Synapse ID of Project, Folder, or File OR a list of Synapse Objects
     :param annoKey:        The annotation key for file type. (i.e. "fileType", "fileFormat", or "formatType")
     :param annoDict        A dict where key is the extension of the filename, 
                            value is the corresponding file type value in entity annotations
@@ -93,10 +94,10 @@ def updateFormatTypeByFileName(syn,synId,annoKey,annoDict):
        
     """
     if type(synId) is list:
-        print "Input is a list of Synapse IDs \n"
+        print "Input is a list of Synapse Objects \n"
         for synID in synId:
-            print "Getting File %s ..." % synID
-            temp = syn.get(synID,downloadFile = False)
+            temp = synID
+            print "Accessing File %s ..." % temp.id
             _helperUpdateFormatTypeByFileName(syn,temp,annoKey,annoDict)
     else:
         print "Input is a Synpase ID \n"
@@ -120,6 +121,7 @@ def _helperUpdateFormatTypeByFileName(syn,temp,annoKey,annoDict):
         if tempName.endswith(ext):
             tempType = annoDict[ext]
             temp[annoKey] = tempType
+            temp = syn.store(temp,forceVersion = False)
             print "> Done!"
             break
     if tempType == "":
