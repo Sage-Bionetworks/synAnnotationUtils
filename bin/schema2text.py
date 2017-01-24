@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """Output a Synapse TableSchema to a text file.
 
 JSON or CSV formats are available.

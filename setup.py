@@ -1,13 +1,13 @@
 from setuptools import setup
 
-setup(name='pythonSynapseUtils',
+setup(name='synAnnotationUtils',
       version='0.1',
       description='Common functions for data curation with Synapse.',
       long_description=open('README.md').read(),
       url='https://github.com/Sage-Bionetworks/pythonSynapseUtils',
       author='Abhishek Pratap, Kenny Daily, Kristen Dang, Xindi Guo',
       license='Apache',
-      packages=['pythonSynapseUtils'],
+      packages=['synAnnotationUtils'],
       install_requires=['synapseclient>1.2', 'PyYAML'],
       zip_safe=False,
       scripts=['bin/schema2text.py'])
