@@ -9,4 +9,5 @@ setup(name='pythonSynapseUtils',
       license='Apache',
       packages=['pythonSynapseUtils'],
       install_requires=['synapseclient>1.2', 'PyYAML'],
-      zip_safe=False)
+      zip_safe=False,
+      scripts=['bin/schema2text.py', 'bin/json2schema.py'])
