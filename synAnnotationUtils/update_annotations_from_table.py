@@ -191,7 +191,7 @@ def main():
 
         # Merge metadata and files
         logger.info("Merging %s" % dataType)
-        merged = doMerge(fileTbl, meta)
+        merged = doMerge(fileTbl, meta, args.uid)
 
         # Transpose the data and convert it to a dictionary, fix individual entries
         mergedDict = merged.transpose().to_dict()
