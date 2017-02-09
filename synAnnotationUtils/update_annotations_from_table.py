@@ -9,12 +9,20 @@ and a way to map between those annotations and a larger set of annotations you w
 
 The required file annotations for an assay file uploaded to Synapse to be used in this script are:
 
-`UID` - a universal ID for the sample represented in the file
-`dataType`: `mRNA`, `miRNA`, `methylation`, etc.
+A universal ID for the sample represented in the file (an existing annotation to join to metadata)
 
 This script uses the `dataType` field to get assay-specific files (using a query lookup dictionary `assayToQuery`),
-and then the `UID` to merge existing file annotations and the table metadata (which is obtained through a lookup
+and then the user-specified key column/annotation (often a `UID`) to merge existing file annotations and the table metadata (which is obtained through a lookup
 dictionary `assayToMetadataTable`. These data structures should be set in a YAML config file to be passed in.
+
+Example YAML
+------------
+
+dataTypesToMetadataTable:
+  teratoma_report: syn2767694
+
+dataTypesToQuery:
+  teratoma_report: "select id,C4_Cell_Line_ID from file where projectId=='syn1773109' AND dataType=='Teratoma' AND fileType=='report'"
 
 """
 
