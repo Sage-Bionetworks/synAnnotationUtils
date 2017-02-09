@@ -136,13 +136,13 @@ def getSynapseTableData(synId):
     metaResults = syn.tableQuery("select * from %s" % metaSchema.id)
     return metaResults.asDataFrame()
 
-def doMerge(fileTbl, meta):
+def doMerge(fileTbl, meta, uid='UID'):
     """Merge file table and metadata table together and add index.
 
     """
 
-    merged = pd.merge(left=fileTbl[['id', 'UID']], right=meta,
-                      how="left", left_on="UID", right_on="UID")
+    merged = pd.merge(left=fileTbl[['id', uid]], right=meta,
+                      how="left", left_on=uid, right_on=uid)
 
     # Set a new index and drop it as a column
     merged.index = merged.id
@@ -160,6 +160,8 @@ def main():
     parser = argparse.ArgumentParser("Update annotations on Synapse files from Synapse table-based metadata.")
     parser.add_argument("-c", "--config", help="YAML config file (requires dataType list, dataTypesToMetadataTable dict, and dataTypesToQuery dict).",
                         type=str)
+    parser.add_argument("-u", "--uid", help="UID to merge on (must be present as existing annotation and column in metadata) [default: %(default)s]",
+                        type=str, default="UID")
     parser.add_argument("-t", "--threads", help="Number of threads to use [default: %(default)s].", type=int, default=2)
     parser.add_argument("--dry-run", help="Perform the requested command without updating anything in Synapse.",
                         action="store_true", default=False)
