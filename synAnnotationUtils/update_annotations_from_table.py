@@ -179,9 +179,9 @@ def main():
         config = yaml.load(f)
 
     logger.info(config)
-    dataTypes = config['dataTypes']
     dataTypesToMetadataTable = config['dataTypesToMetadataTable']
     dataTypesToQuery = config['dataTypesToQuery']
+    dataTypes = dataTypesToMetadataTable.keys()
 
     mp = Pool(args.threads)
 
