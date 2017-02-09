@@ -127,13 +127,17 @@ def updateAnnots(synid, lookupDict, syn):
 
     return o
 
-def getSynapseTableData(synId):
+def getSynapseTableData(synId, cols=None):
     """Get all rows from a Synapse Table as a Pandas DataFrame.
 
     """
 
-    metaSchema = syn.get(synId)
-    metaResults = syn.tableQuery("select * from %s" % metaSchema.id)
+    if not cols:
+        cols_string = "*"
+    else:
+        cols_string = ",".join(cols)
+    
+    metaResults = syn.tableQuery("select %s from %s" % (cols_string, synId))
     return metaResults.asDataFrame()
 
 def doMerge(fileTbl, meta, uid='UID'):
@@ -162,6 +166,8 @@ def main():
                         type=str)
     parser.add_argument("-u", "--uid", help="UID to merge on (must be present as existing annotation and column in metadata) [default: %(default)s]",
                         type=str, default="UID")
+    parser.add_argument("--metadata_cols", help="Columns to get from metadata table (must include column used for UID); None gets all columns [default: %(default)s]",
+                        type=str, default=None)
     parser.add_argument("-t", "--threads", help="Number of threads to use [default: %(default)s].", type=int, default=2)
     parser.add_argument("--dry-run", help="Perform the requested command without updating anything in Synapse.",
                         action="store_true", default=False)
@@ -183,20 +189,20 @@ def main():
 
         # Metadata
         logger.info("Getting %s metadata" % dataType)
-        meta = getSynapseTableData(dataTypesToMetadataTable[dataType])
-
+        meta = getSynapseTableData(dataTypesToMetadataTable[dataType], args.metadata_cols)
+        
         # All files
         logger.info("Getting %s file list" % dataType)
         fileTbl = query2df(syn.chunkedQuery(dataTypesToQuery[dataType]))
-
+        
         # Merge metadata and files
         logger.info("Merging %s" % dataType)
         merged = doMerge(fileTbl, meta, args.uid)
-
+        
         # Transpose the data and convert it to a dictionary, fix individual entries
         mergedDict = merged.transpose().to_dict()
         mergedDict2 = fixDict(mergedDict)
-
+        
         # Update the annotations
         if not args.dry_run:
             logger.info("Updating %s annotations" % dataType)
