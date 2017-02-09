@@ -9,4 +9,5 @@ setup(name='synAnnotationUtils',
       license='Apache',
       packages=['synAnnotationUtils'],
       install_requires=['synapseclient>1.2', 'PyYAML'],
-      zip_safe=False)
+      zip_safe=False,
+      scripts=['bin/schema2text.py'])
