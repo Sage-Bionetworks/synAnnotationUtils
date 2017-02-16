@@ -144,8 +144,12 @@ def getSynapseTableData(synId, cols=None):
         cols_string = "*"
     else:
         cols_string = ",".join(cols)
-    
-    metaResults = syn.tableQuery("select %s from %s" % (cols_string, synId))
+    queryString = "select %s from %s" % (cols_string, synId)
+
+    logger.debug(queryString)
+
+    metaResults = syn.tableQuery(queryString)
+
     return metaResults.asDataFrame()
 
 def doMerge(fileTbl, meta, uid='UID'):
@@ -165,6 +169,7 @@ def doMerge(fileTbl, meta, uid='UID'):
 def main():
 
     import yaml
+    import re
     import argparse
     import pprint
     import pandas
@@ -196,21 +201,30 @@ def main():
     for dataType in dataTypes:
 
         # Metadata
-        logger.info("Getting %s metadata" % dataType)
+        logger.info("Getting %s metadata from %s" % (dataType, dataTypesToMetadataTable[dataType]))
         meta = getSynapseTableData(dataTypesToMetadataTable[dataType], args.metadata_cols)
-        
+
         # All files
         logger.info("Getting %s file list" % dataType)
-        fileTbl = query2df(syn.chunkedQuery(dataTypesToQuery[dataType]))
-        
+        queryString = dataTypesToQuery[dataType]
+
+        if re.search('from syn\d', queryString.lower()):
+            try:
+                fileTbl = syn.tableQuery(queryString).asDataFrame()
+            except Exception as e:
+                logger.info('Problem with query: %s' % (queryString,))
+                raise e
+        else:
+            fileTbl = query2df(syn.chunkedQuery(queryString))
+
         # Merge metadata and files
         logger.info("Merging %s" % dataType)
         merged = doMerge(fileTbl, meta, args.uid)
-        
+
         # Transpose the data and convert it to a dictionary, fix individual entries
         mergedDict = merged.transpose().to_dict()
         mergedDict2 = fixDict(mergedDict)
-        
+
         # Update the annotations
         if not args.dry_run:
             logger.info("Updating %s annotations" % dataType)
