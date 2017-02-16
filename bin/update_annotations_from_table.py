@@ -109,7 +109,12 @@ def updateDict(a, b, removeFields=SYNAPSE_PROPERTIES):
 
     """
 
-    foo = [a.pop(x) for x in removeFields]
+    for x in removeFields:
+        try:
+            foo = a.pop(x)
+        except KeyError:
+            pass
+    
     a.update(b)
     return a
 
