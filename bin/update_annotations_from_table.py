@@ -114,7 +114,7 @@ def updateDict(a, b, removeFields=SYNAPSE_PROPERTIES):
             foo = a.pop(x)
         except KeyError:
             pass
-    
+
     a.update(b)
     return a
 
@@ -185,7 +185,7 @@ def main():
     parser.add_argument("-u", "--uid", help="UID to merge on (must be present as existing annotation and column in metadata) [default: %(default)s]",
                         type=str, default="UID")
     parser.add_argument("--metadata_cols", help="Columns to get from metadata table (must include column used for UID); None gets all columns [default: %(default)s]",
-                        type=str, default=["id", "UID"], nargs="+")
+                        type=str, default=None, nargs="+")
     parser.add_argument("-t", "--threads", help="Number of threads to use [default: %(default)s].", type=int, default=2)
     parser.add_argument("--dry-run", help="Perform the requested command without updating anything in Synapse.",
                         action="store_true", default=False)
