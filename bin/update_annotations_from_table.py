@@ -9,12 +9,20 @@ and a way to map between those annotations and a larger set of annotations you w
 
 The required file annotations for an assay file uploaded to Synapse to be used in this script are:
 
-`UID` - a universal ID for the sample represented in the file
-`dataType`: `mRNA`, `miRNA`, `methylation`, etc.
+A universal ID for the sample represented in the file (an existing annotation to join to metadata)
 
 This script uses the `dataType` field to get assay-specific files (using a query lookup dictionary `assayToQuery`),
-and then the `UID` to merge existing file annotations and the table metadata (which is obtained through a lookup
+and then the user-specified key column/annotation (often a `UID`) to merge existing file annotations and the table metadata (which is obtained through a lookup
 dictionary `assayToMetadataTable`. These data structures should be set in a YAML config file to be passed in.
+
+Example YAML
+------------
+
+dataTypesToMetadataTable:
+  teratoma_report: syn2767694
+
+dataTypesToQuery:
+  teratoma_report: "select id,C4_Cell_Line_ID from file where projectId=='syn1773109' AND dataType=='Teratoma' AND fileType=='report'"
 
 """
 
@@ -127,22 +135,26 @@ def updateAnnots(synid, lookupDict, syn):
 
     return o
 
-def getSynapseTableData(synId):
+def getSynapseTableData(synId, cols=None):
     """Get all rows from a Synapse Table as a Pandas DataFrame.
 
     """
 
-    metaSchema = syn.get(synId)
-    metaResults = syn.tableQuery("select * from %s" % metaSchema.id)
+    if not cols:
+        cols_string = "*"
+    else:
+        cols_string = ",".join(cols)
+    
+    metaResults = syn.tableQuery("select %s from %s" % (cols_string, synId))
     return metaResults.asDataFrame()
 
-def doMerge(fileTbl, meta):
+def doMerge(fileTbl, meta, uid='UID'):
     """Merge file table and metadata table together and add index.
 
     """
 
-    merged = pd.merge(left=fileTbl[['id', 'UID']], right=meta,
-                      how="left", left_on="UID", right_on="UID")
+    merged = pd.merge(left=fileTbl[['id', uid]], right=meta,
+                      how="left", left_on=uid, right_on=uid)
 
     # Set a new index and drop it as a column
     merged.index = merged.id
@@ -160,6 +172,10 @@ def main():
     parser = argparse.ArgumentParser("Update annotations on Synapse files from Synapse table-based metadata.")
     parser.add_argument("-c", "--config", help="YAML config file (requires dataType list, dataTypesToMetadataTable dict, and dataTypesToQuery dict).",
                         type=str)
+    parser.add_argument("-u", "--uid", help="UID to merge on (must be present as existing annotation and column in metadata) [default: %(default)s]",
+                        type=str, default="UID")
+    parser.add_argument("--metadata_cols", help="Columns to get from metadata table (must include column used for UID); None gets all columns [default: %(default)s]",
+                        type=str, default=["id", "UID"], nargs="+")
     parser.add_argument("-t", "--threads", help="Number of threads to use [default: %(default)s].", type=int, default=2)
     parser.add_argument("--dry-run", help="Perform the requested command without updating anything in Synapse.",
                         action="store_true", default=False)
@@ -171,9 +187,9 @@ def main():
         config = yaml.load(f)
 
     logger.info(config)
-    dataTypes = config['dataTypes']
     dataTypesToMetadataTable = config['dataTypesToMetadataTable']
     dataTypesToQuery = config['dataTypesToQuery']
+    dataTypes = dataTypesToMetadataTable.keys()
 
     mp = Pool(args.threads)
 
@@ -181,20 +197,20 @@ def main():
 
         # Metadata
         logger.info("Getting %s metadata" % dataType)
-        meta = getSynapseTableData(dataTypesToMetadataTable[dataType])
-
+        meta = getSynapseTableData(dataTypesToMetadataTable[dataType], args.metadata_cols)
+        
         # All files
         logger.info("Getting %s file list" % dataType)
         fileTbl = query2df(syn.chunkedQuery(dataTypesToQuery[dataType]))
-
+        
         # Merge metadata and files
         logger.info("Merging %s" % dataType)
-        merged = doMerge(fileTbl, meta)
-
+        merged = doMerge(fileTbl, meta, args.uid)
+        
         # Transpose the data and convert it to a dictionary, fix individual entries
         mergedDict = merged.transpose().to_dict()
         mergedDict2 = fixDict(mergedDict)
-
+        
         # Update the annotations
         if not args.dry_run:
             logger.info("Updating %s annotations" % dataType)
