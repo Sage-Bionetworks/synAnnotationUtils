@@ -118,7 +118,7 @@ def updateDict(a, b, removeFields=SYNAPSE_PROPERTIES):
     a.update(b)
     return a
 
-def updateAnnots(synid, lookupDict, syn):
+def updateAnnots(syn, synid, lookupDict):
     """Update annotations using a dict to lookup which annotations to add (keys are synids).
 
     Works this way for parallelization.
@@ -233,7 +233,7 @@ def main():
         # Update the annotations
         if not args.dry_run:
             logger.info("Updating %s annotations" % dataType)
-            res = mp.map(lambda x: updateAnnots(x, mergedDict2), mergedDict2.keys())
+            res = mp.map(lambda x: updateAnnots(syn, x, mergedDict2), mergedDict2.keys())
         else:
             logger.info("Would have updated:")
             merged.to_csv(sys.stdout, sep="\t")
