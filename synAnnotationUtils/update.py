@@ -1,3 +1,8 @@
+from synapseclient.entity import is_container
+import re
+import synapseutils as synu
+
+
 # Update Annotations 
 ## by dict
 def updateAnnoByDict(syn,synId,annoDict):
