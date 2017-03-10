@@ -1,4 +1,8 @@
+from synapseclient.entity import is_container
+import re
+import synapseutils as synu
 import logging
+
 
 # Update Annotations 
 ## by dict
@@ -205,6 +209,8 @@ def _helperUpdateFormatTypeByFileName(syn,synEntity,annoKey,annoDict,forceVersio
             synEntity = syn.store(synEntity,forceVersion = forceVersion)
             logging.info("Done!")
             break
+
     if synEntityType == "":
         logging.warning("ERROR: File type not found in file types dictionary")
     logging.info("")
+
