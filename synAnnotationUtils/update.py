@@ -1,6 +1,6 @@
 from synapseclient.entity import is_container
 import re
-import synapseutils as synu
+import synapseutils
 import logging
 
 
@@ -34,7 +34,7 @@ def updateAnnoByDict(syn,synId,annoDict,forceVersion = False):
             logging.info("%s is a File" % synId)
             _helperUpdateAnnoByDict(syn,synEntity,annoDict,forceVersion)
         else:
-            directory = synu.walk(syn,synId)
+            directory = synapseutils.walk(syn,synId)
             for dirpath,dirname,filename in directory:
                 for i in filename:
                     synEntity = syn.get(i[1],downloadFile = False)
@@ -102,7 +102,7 @@ def updateAnnoByMetadata(syn, synId, metaDf, refCol, cols2Add,fileExts,forceVers
             logging.info("%s is a File" % synId)
             _helperUpdateAnnoByMetadata(syn,synEntity,metaDf,refCol,cols2Add,fileExts,forceVersion)
         else:
-            directory = synu.walk(syn,synId)
+            directory = synapseutils.walk(syn,synId)
             for dirpath,dirname,filename in directory:
                 for i in filename:
                     synEntity = syn.get(i[1],downloadFile = False)
@@ -191,7 +191,7 @@ def updateFormatTypeByFileName(syn,synId,annoKey,annoDict,forceVersion=False):
             logging.info("%s is a File" % synId)
             _helperUpdateFormatTypeByFileName(syn,synEntity,annoKey,annoDict,forceVersion)
         else:
-            directory = synu.walk(syn,synId)
+            directory = synapseutils.walk(syn,synId)
             for dirpath,dirname,filename in directory:
                 for i in filename:
                     synEntity = syn.get(i[1],downloadFile = False)
