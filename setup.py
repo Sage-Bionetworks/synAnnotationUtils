@@ -2,10 +2,10 @@ from setuptools import setup
 
 setup(name='synAnnotationUtils',
       version='0.1',
-      description='Common functions for data curation with Synapse.',
+      description='Annotation management for Synapse.',
       long_description=open('README.md').read(),
-      url='https://github.com/Sage-Bionetworks/pythonSynapseUtils',
-      author='Abhishek Pratap, Kenny Daily, Kristen Dang, Xindi Guo',
+      url='https://github.com/Sage-Bionetworks/synAnnotationUtils',
+      author='Kenneth Daily, Kristen Dang, Xindi Guo',
       license='Apache',
       packages=['synAnnotationUtils'],
       install_requires=['synapseclient>1.2', 'PyYAML'],

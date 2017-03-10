@@ -109,11 +109,16 @@ def updateDict(a, b, removeFields=SYNAPSE_PROPERTIES):
 
     """
 
-    foo = [a.pop(x) for x in removeFields]
+    for x in removeFields:
+        try:
+            foo = a.pop(x)
+        except KeyError:
+            pass
+
     a.update(b)
     return a
 
-def updateAnnots(synid, lookupDict, syn):
+def updateAnnots(syn, synid, lookupDict):
     """Update annotations using a dict to lookup which annotations to add (keys are synids).
 
     Works this way for parallelization.
@@ -144,8 +149,12 @@ def getSynapseTableData(synId, cols=None):
         cols_string = "*"
     else:
         cols_string = ",".join(cols)
-    
-    metaResults = syn.tableQuery("select %s from %s" % (cols_string, synId))
+    queryString = "select %s from %s" % (cols_string, synId)
+
+    logger.debug(queryString)
+
+    metaResults = syn.tableQuery(queryString)
+
     return metaResults.asDataFrame()
 
 def doMerge(fileTbl, meta, uid='UID'):
@@ -165,6 +174,7 @@ def doMerge(fileTbl, meta, uid='UID'):
 def main():
 
     import yaml
+    import re
     import argparse
     import pprint
     import pandas
@@ -175,7 +185,7 @@ def main():
     parser.add_argument("-u", "--uid", help="UID to merge on (must be present as existing annotation and column in metadata) [default: %(default)s]",
                         type=str, default="UID")
     parser.add_argument("--metadata_cols", help="Columns to get from metadata table (must include column used for UID); None gets all columns [default: %(default)s]",
-                        type=str, default=["id", "UID"], nargs="+")
+                        type=str, default=None, nargs="+")
     parser.add_argument("-t", "--threads", help="Number of threads to use [default: %(default)s].", type=int, default=2)
     parser.add_argument("--dry-run", help="Perform the requested command without updating anything in Synapse.",
                         action="store_true", default=False)
@@ -196,25 +206,34 @@ def main():
     for dataType in dataTypes:
 
         # Metadata
-        logger.info("Getting %s metadata" % dataType)
+        logger.info("Getting %s metadata from %s" % (dataType, dataTypesToMetadataTable[dataType]))
         meta = getSynapseTableData(dataTypesToMetadataTable[dataType], args.metadata_cols)
-        
+
         # All files
         logger.info("Getting %s file list" % dataType)
-        fileTbl = query2df(syn.chunkedQuery(dataTypesToQuery[dataType]))
-        
+        queryString = dataTypesToQuery[dataType]
+
+        if re.search('from syn\d', queryString.lower()):
+            try:
+                fileTbl = syn.tableQuery(queryString).asDataFrame()
+            except Exception as e:
+                logger.info('Problem with query: %s' % (queryString,))
+                raise e
+        else:
+            fileTbl = query2df(syn.chunkedQuery(queryString))
+
         # Merge metadata and files
         logger.info("Merging %s" % dataType)
         merged = doMerge(fileTbl, meta, args.uid)
-        
+
         # Transpose the data and convert it to a dictionary, fix individual entries
         mergedDict = merged.transpose().to_dict()
         mergedDict2 = fixDict(mergedDict)
-        
+
         # Update the annotations
         if not args.dry_run:
             logger.info("Updating %s annotations" % dataType)
-            res = mp.map(lambda x: updateAnnots(x, mergedDict2), mergedDict2.keys())
+            res = mp.map(lambda x: updateAnnots(syn, x, mergedDict2), mergedDict2.keys())
         else:
             logger.info("Would have updated:")
             merged.to_csv(sys.stdout, sep="\t")
