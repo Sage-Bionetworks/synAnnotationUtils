@@ -4,10 +4,7 @@ import synapseutils
 import logging
 
 
-'''
-	 Updates File entity Annotations
-	
-'''
+'''Updates File entity Annotations'''
  
 # By user defined dictionary containing annotations 
 def updateAnnoByDict(syn,synId,annoDict,forceVersion = False):
