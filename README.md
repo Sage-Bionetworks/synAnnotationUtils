@@ -21,3 +21,8 @@ Documentation
 -------------
 
 For moar info, ask @xindiguo.
+
+Contributing
+-------------
+
+Fork or clone this repository, make a feature branch from `develop`, and push that branch. Then, open a pull request against the `develop` branch.
