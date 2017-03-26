@@ -4,6 +4,7 @@ import re
 import pandas
 import synapseutils
 from synapseclient.entity import is_container
+from synapseclient import Table
 
 
 def _helperUpdateAnnoByDict(syn, synEntity, annoDict, forceVersion):
