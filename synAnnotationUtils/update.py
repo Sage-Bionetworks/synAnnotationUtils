@@ -1,18 +1,20 @@
-from synapseclient.entity import is_container
-import re
-import synapseutils
+import csv
 import logging
+import re
+import pandas
+import synapseutils
+from synapseclient.entity import is_container
 
 
-def _helperUpdateAnnoByDict(syn,synEntity,annoDict,forceVersion):
+def _helperUpdateAnnoByDict(syn, synEntity, annoDict, forceVersion):
     logging.info("Updating annotations...")
     synEntity.annotations.update(annoDict)
-    synEntity = syn.store(synEntity,forceVersion = forceVersion)
+    synEntity = syn.store(synEntity, forceVersion=forceVersion)
     logging.info("Completed.")
 
 
 ## by dict
-def updateAnnoByDict(syn,synId,annoDict,forceVersion = False):
+def updateAnnoByDict(syn, synId, annoDict, forceVersion=False):
     """
     Update annotations by giving a dict
     :param syn:            A Synapse object: syn = synapseclient.login()- Must be logged into synapse
@@ -27,31 +29,29 @@ def updateAnnoByDict(syn,synId,annoDict,forceVersion = False):
        updateAnnoByDict(syn,["syn1","syn2"],{"dataType":"testing","projectName":"foo"})
        
     """
-    
+
     if type(synId) is list:  # Output from audit functions
         logging.info("Input is a list of Synapse Objects")
         for synEntity in synId:
             logging.info("Accessing File %s ..." % synEntity.id)
-            _helperUpdateAnnoByDict(syn,synEntity,annoDict)
+            _helperUpdateAnnoByDict(syn, synEntity, annoDict)
     else:
         logging.info("Input is a Synpase ID")
-        synEntity = syn.get(synId,downloadFile = False)
+        synEntity = syn.get(synId, downloadFile=False)
         if not is_container(synEntity):
             logging.info("%s is a File" % synId)
-            _helperUpdateAnnoByDict(syn,synEntity,annoDict,forceVersion)
+            _helperUpdateAnnoByDict(syn, synEntity, annoDict, forceVersion)
         else:
-            directory = synapseutils.walk(syn,synId)
-            for dirpath,dirname,filename in directory:
+            directory = synapseutils.walk(syn, synId)
+            for dirpath, dirname, filename in directory:
                 for i in filename:
                     synEntity = syn.get(i[1], downloadFile=False)
                     logging.info("Getting File %s ..." % i[1])
-                    _helperUpdateAnnoByDict(syn,synEntity,annoDict,forceVersion)
-
+                    _helperUpdateAnnoByDict(syn, synEntity, annoDict, forceVersion)
 
 
 ## by idDict
 def updateAnnoByIdDictFromDict(syn, idDict, annoDict, forceVersion=False):
-    
     """
     Update annotations from dictionary
     by a given dict(key:annotation keys need to updated, value:a list of Synpase Objects)
@@ -69,7 +69,7 @@ def updateAnnoByIdDictFromDict(syn, idDict, annoDict, forceVersion=False):
     for key in idDict:
         logging.info("Updating annotaion values for key: %s" % key)
         for synEntity in idDict[key]:
-            logging.info (synEntity.id)
+            logging.info(synEntity.id)
             synEntity[key] = annoDict[key]
             synEntity = syn.store(synEntity, forceVersion=forceVersion)
         logging.info("")
@@ -99,7 +99,7 @@ def _helperUpdateAnnoByMetadata(syn, synEntity, metaDf, refCol, cols2Add, fileEx
     logging.info("")
 
 
-def updateAnnoByMetadata(syn, synId, metaDf, refCol, cols2Add,fileExts,forceVersion=False):
+def updateAnnoByMetadata(syn, synId, metaDf, refCol, cols2Add, fileExts, forceVersion=False):
     """
     Audit entity annotations against metadata
     :param syn:            A Synapse object: syn = synapseclient.login()- Must be logged into synapse
@@ -115,12 +115,12 @@ def updateAnnoByMetadata(syn, synId, metaDf, refCol, cols2Add,fileExts,forceVers
         updateAnnoByMetadata(syn,"syn12345",metadata,"id",["dataType","tester"],[".bam",".csv"])
        
     """
-    
-    if type(synId) is list: # Output from audit functions
+
+    if type(synId) is list:  # Output from audit functions
         logging.info("Input is a list of Synapse Objects")
         for synEntity in synId:
             logging.info("Accessing File %s ..." % synEntity.id)
-            _helperUpdateAnnoByMetadata(syn,synEntity, metaDf, refCol, cols2Add, fileExts, forceVersion)
+            _helperUpdateAnnoByMetadata(syn, synEntity, metaDf, refCol, cols2Add, fileExts, forceVersion)
     else:
         logging.info("Input is a Synpase ID")
         synEntity = syn.get(synId, downloadFile=False)
@@ -128,16 +128,15 @@ def updateAnnoByMetadata(syn, synId, metaDf, refCol, cols2Add,fileExts,forceVers
             logging.info("%s is a File" % synId)
             _helperUpdateAnnoByMetadata(syn, synEntity, metaDf, refCol, cols2Add, fileExts, forceVersion)
         else:
-            directory = synapseutils.walk(syn,synId)
-            for dirpath,dirname,filename in directory:
+            directory = synapseutils.walk(syn, synId)
+            for dirpath, dirname, filename in directory:
                 for i in filename:
                     synEntity = syn.get(i[1], downloadFile=False)
                     logging.info("Getting File %s ..." % i[1])
                     _helperUpdateAnnoByMetadata(syn, synEntity, metaDf, refCol, cols2Add, fileExts, forceVersion)
 
 
-def updateAnnoByIdDictFromMeta(syn,idDict,metaDf,refCol,fileExts,forceVersion=False):
-    
+def updateAnnoByIdDictFromMeta(syn, idDict, metaDf, refCol, fileExts, forceVersion=False):
     """
     Update annotations from metadata 
     by a given dict(key:annotation keys need to updated, value:a list of Synpase Objects)
@@ -161,7 +160,7 @@ def updateAnnoByIdDictFromMeta(syn,idDict,metaDf,refCol,fileExts,forceVersion=Fa
             exts = r'(' + exts + ')'
             synEntityName = re.sub(exts, "", synEntity.name)
             row = df.loc[df[refCol] == synEntityName]
-            synEntity[key] = map(str,row[key])[0]
+            synEntity[key] = map(str, row[key])[0]
             synEntity = syn.store(synEntity, forceVersion=forceVersion)
         logging.info("")
 
@@ -200,7 +199,7 @@ def updateFormatTypeByFileName(syn, synId, annoKey, annoDict, forceVersion=False
        updateFormatTypeByFileName(syn,["syn1","syn2"],"fileType",{".bam":"bam", ".doc":"word", "bw":"bigwig"})
        
     """
-    if type(synId) is list: # Output from audit functions 
+    if type(synId) is list:  # Output from audit functions
         logging.info("Input is a list of Synapse Objects")
         for synEntity in synId:
             logging.info("Accessing File %s ..." % synEntity.id)
@@ -212,11 +211,57 @@ def updateFormatTypeByFileName(syn, synId, annoKey, annoDict, forceVersion=False
             logging.info("%s is a File" % synId)
             _helperUpdateFormatTypeByFileName(syn, synEntity, annoKey, annoDict, forceVersion)
         else:
-            directory = synapseutils.walk(syn,synId)
-            for dirpath,dirname,filename in directory:
+            directory = synapseutils.walk(syn, synId)
+            for dirpath, dirname, filename in directory:
                 for i in filename:
                     synEntity = syn.get(i[1], downloadFile=False)
                     logging.info("Getting File %s ..." % i[1])
                     _helperUpdateFormatTypeByFileName(syn, synEntity, annoKey, annoDict, forceVersion)
 
 
+def _csv2df(path):
+    df = pandas.read_csv(path).dropna(how='all')
+    df.set_index('id', inplace=True, drop=False)
+    return df
+
+
+def _query2df(syn, tableId, clause):
+    query = 'select * from '
+
+    if clause is None:
+        view = syn.tableQuery(query + tableId)
+    else:
+        view = syn.tableQuery(query + tableId + ' ' + clause)
+
+    view = list(csv.DictReader(file(view.filepath)))
+    df = pandas.DataFrame(view)
+    df.set_index('id', inplace=True, drop=False)
+    return df
+
+
+def updateTableView(syn, tableId, path, clause=None):
+    """
+      Update Table-View annotations by giving a user-defined manifest csv path
+      :param syn:            A Synapse object: syn = synapseclient.login() - Must be logged into synapse
+      :param synId:          A Synapse ID of Table-View (edit permission on its' files is required)
+      :param path:           An Absolute/relative (on current working directory) path to user-defined manifest csv file containing updates
+      :param clause:         A SQL clause to allow for sub-setting & row filtering to reduce data-size on download
+
+      Example:
+
+         updateTableView(syn, 'syn12345', 'projectX_annotation_updates.csv')
+         OR
+         updateTableView(syn, 'syn12345', 'projectX_annotation_updates.csv', 'where assay == 'geneExpression')
+      """
+
+    view_df = _query2df(syn, tableId, clause)
+    user_df = _csv2df(path)
+
+    assert user_df.columns.isin(view_df.columns).all()
+
+    view_df.update(user_df)
+    view = syn.store(syn.Table(tableId, view_df))
+    ##print(view)
+
+    logging.info("Completed updating annotation on table-view %s." % tableId)
+    ##assert isinstance(view, EntityView)
