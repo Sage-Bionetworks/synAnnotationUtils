@@ -1,7 +1,7 @@
 '''
 Example:
    Create manifest
-   $ python sync_manifest.py -c -d ../../dir1/dir2 -id syn123456
+   $ python sync_manifest.py -c -d ../../dir1/dir2 -id syn123456 -f ../synapseAnnotations/data/common/minimal_Sage_standard.json
 
    Upload using sync function
    $ python sync_manifest.py -u -m manifest.tsv
@@ -19,17 +19,21 @@ from synapseclient import Folder
 
 # walk through local directory
 # get a list of dirs and a list of files
-def _getLists(local_root):
+def _getLists(local_root,depth):
     dir_list = []
     file_list = []
 
-    local_dir = os.walk(local_root)
-
-    for dirpath, dirnames, filenames in local_dir:
-	    dirpath = os.path.abspath(dirpath)
-	    dir_list.append(dirpath)
-	    for name in filenames:
-		    file_list.append(os.path.join(dirpath,name))
+    for dirpath, _, filenames in os.walk(local_root):
+        sub_dir = dirpath[len(local_root):]
+        n = sub_dir.count(os.path.sep) + 1 if sub_dir != '' else 0
+        dirpath = os.path.abspath(dirpath)
+        if depth is not None:
+            if n < depth:
+                dir_list.append(dirpath)
+        else:
+            dir_list.append(dirpath)
+        for name in filenames:
+            file_list.append(os.path.join(dirpath,name))
     return dir_list,file_list
 
 # walk through Synapse
@@ -70,12 +74,32 @@ def _getAnnotationKey(dirs):
             key_list = key_list + list(annotation_key)
     return key_list
 
+def _getName(path, synapse_dir, local_root, depth):
+    path_no_root = path[len(os.path.abspath(local_root)):]
+
+    if depth is not None and path_no_root.count(os.path.sep) > depth-1:
+        if str.startswith(path_no_root, '/'):
+            path_no_root = path_no_root[1:]
+        temp_name = path_no_root.split('/')[(depth-1):]
+        name = '_'.join(temp_name)
+    
+        temp_name = '/'.join(temp_name)
+        parent = synapse_dir[os.path.dirname(path[:-len(temp_name)])]
+    else:
+        name = os.path.basename(path)
+        parent= synapse_dir[os.path.dirname(path)]
+    return name,parent
 
 # create manifest
-def create(file_list,key_list,synapse_dir):
+def create(file_list,key_list,synapse_dir,local_root,depth):
     result = pd.DataFrame()
     result['path'] = file_list
-    result['parent'] = result['path'].map(lambda x: synapse_dir[os.path.dirname(x)])
+    result['name'] = ""
+    result['parent'] = ""
+    
+    for index, row in result.iterrows():
+        row[['name','parent']] = _getName(row['path'], synapse_dir, local_root, depth)
+        
     cols = list(result.columns)
 
     result = pd.concat([result,pd.DataFrame(columns=key_list)])
@@ -95,20 +119,26 @@ def main():
     parser.add_argument('-id','--id',help='Synapse ID of the project/file')
     parser.add_argument('-f','--files',
                         help='Path(s) to JSON file(s) of annotations. optional', nargs='+')
+    parser.add_argument('-n','--n', help='depth of hierarchy, DEFAULT is None', default=None)
     parser.add_argument('-m','--manifest',help='manifest file')
     args=parser.parse_args()
     
     if args.create:
-    	sys.stdout.write('Preparing to create manifest\n')
+        sys.stdout.write('Preparing to create manifest\n')
         local_root = args.dir
         synapse_id = args.id
         annotations = args.files
-    
-        dir_list, file_list = _getLists(local_root)
+        depth = args.n
+
+        if depth is not None:
+            depth = int(depth) 
+
+        dir_list, file_list = _getLists(local_root,depth)
+        print(dir_list)
         synapse_dir = _getSynapseDir(syn, synapse_id,local_root,dir_list)
         key_list = _getAnnotationKey(annotations)
 
-        create(file_list,key_list,synapse_dir)
+        create(file_list,key_list,synapse_dir,local_root,depth)
     elif args.upload:
         sys.stdout.write('Preparing to upload files\n')
         synu.syncToSynapse(syn, args.manifest)
@@ -116,5 +146,5 @@ def main():
         sys.stdout.write('Please enter python sync_manifest.py -h for more information.\n')
 
 if __name__ == '__main__':
-	main()
+    main()
 
