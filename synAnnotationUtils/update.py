@@ -223,11 +223,14 @@ def updateFormatTypeByFileName(syn, synId, annoKey, annoDict, forceVersion=False
 
 def _csv2df(path):
     """
-    Reads users .csv file containing updated annotations and converts it into a pandas dataframe while removing all NA rows
-    :param path: Current working directory absolute/relative path to user-defined manifest .csv file containing updated cells with the same schema as existing entity-view
-    :return:
-    """
+    Reads users .csv file containing updated annotations and converts it into a pandas dataframe
+    while removing all NA rows
 
+    :param path: Current working directory absolute/relative path to user-defined manifest .csv file containing
+                 updated cells with the same schema as existing entity-view
+    :return:     A dataframe containing modified information on an entity-view.
+                 Structured as synapse file Ids X standard synapse schema + annotation's schema
+    """
     df = pandas.read_csv(path).dropna(how='all')
 
     return df
@@ -235,7 +238,9 @@ def _csv2df(path):
 
 def _query2df(syn, synId, clause):
     """
-    Downloads the entity-view query result as a CsvFileTable then convert it into a pandas dataframe with ROW_IDs as indecies
+    Downloads the entity-view query result as a CsvFileTable then convert it into a pandas dataframe
+    with ROW_IDs as indecies
+
     :param syn:         A Synapse object: syn = synapseclient.login(username, password) - Must be logged into synapse
     :param synId:       A Synapse ID of an entity-view (Note: Edit permission on its' files is required)
     :param clause:      A SQL clause to allow for sub-setting & row filtering in order to reduce the data-size on dow
@@ -256,15 +261,17 @@ def _query2df(syn, synId, clause):
 def updateEntityView(syn, synId, path, clause=None):
     """
      Update Entity-View annotations by giving a user-defined manifest csv path with the same schema as the Entity-View
-      :param syn:            A Synapse object: syn = synapseclient.login(username, password) - Must be logged into synapse
-      :param synId:          A Synapse ID of an entity-view (Note: Edit permission on its' files is required)
-      :param path:           Current working directory absolute/relative path to user-defined manifest .csv file containing updated cells with the same schema as existing entity-view
-      :param clause:         A SQL clause to allow for sub-setting & row filtering in order to reduce the data-size on download
 
-      Example:
+      :param syn:       A Synapse object: syn = synapseclient.login(username, password) - Must be logged into synapse
+      :param synId:     A Synapse ID of an entity-view (Note: Edit permission on its' files is required)
+      :param path:      Current working directory absolute/relative path to user-defined manifest .csv file containing
+                        updated cells with the same schema as existing entity-view
+      :param clause:    A SQL clause to allow for sub-setting & row filtering in order to reduce the data-size on
+                        download
+
+      Examples:
          
          updateEntityView(syn, 'syn12345', 'myproject_annotation_updates.csv')
-         OR
          updateEntityView(syn, 'syn12345', 'myproject_annotation_updates.csv', 'where assay = 'geneExpression')
       """
 
