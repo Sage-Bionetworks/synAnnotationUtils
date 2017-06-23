@@ -1,6 +1,6 @@
-import logging
 import re
 import pandas
+import logging
 import synapseclient
 import synapseutils
 from synapseclient.entity import is_container
@@ -48,6 +48,7 @@ def updateAnnoByDict(syn, synId, annoDict, forceVersion=False):
                     synEntity = syn.get(i[1], downloadFile=False)
                     logging.info("Getting File %s ..." % i[1])
                     _helperUpdateAnnoByDict(syn, synEntity, annoDict, forceVersion)
+
 
 
 ## by idDict
