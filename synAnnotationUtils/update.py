@@ -1,10 +1,9 @@
-import csv
 import logging
 import re
 import pandas
+import synapseclient
 import synapseutils
 from synapseclient.entity import is_container
-from synapseclient import Table
 
 
 def _helperUpdateAnnoByDict(syn, synEntity, annoDict, forceVersion):
@@ -67,6 +66,7 @@ def updateAnnoByIdDictFromDict(syn, idDict, annoDict, forceVersion=False):
         updateAnnoByIdDictFromDict(syn,{"dataType":["syn1","syn2"]},{"dataType":"csv","test":"TRUE"})
        
     """
+
     for key in idDict:
         logging.info("Updating annotaion values for key: %s" % key)
         for synEntity in idDict[key]:
@@ -153,6 +153,7 @@ def updateAnnoByIdDictFromMeta(syn, idDict, metaDf, refCol, fileExts, forceVersi
     The entity name without extension is map to a column in the metadata data frame
        
     """
+
     for key in idDict:
         logging.info("updating annotaion values for key: %s" % key)
         for synEntity in idDict[key]:
@@ -221,48 +222,64 @@ def updateFormatTypeByFileName(syn, synId, annoKey, annoDict, forceVersion=False
 
 
 def _csv2df(path):
+    """
+    Reads users .csv file containing updated annotations and converts it into a pandas dataframe while removing all NA rows
+    :param path: Current working directory absolute/relative path to user-defined manifest .csv file containing updated cells with the same schema as existing entity-view
+    :return:
+    """
+
     df = pandas.read_csv(path).dropna(how='all')
-    df.set_index('id', inplace=True, drop=False)
+
     return df
 
 
-def _query2df(syn, tableId, clause):
+def _query2df(syn, synId, clause):
+    """
+    Downloads the entity-view query result as a CsvFileTable then convert it into a pandas dataframe with ROW_IDs as indecies
+    :param syn:         A Synapse object: syn = synapseclient.login(username, password) - Must be logged into synapse
+    :param synId:       A Synapse ID of an entity-view (Note: Edit permission on its' files is required)
+    :param clause:      A SQL clause to allow for sub-setting & row filtering in order to reduce the data-size on dow
+    :return:            A dataframe with the entity-view schema and content
+    """
     query = 'select * from '
 
     if clause is None:
-        view = syn.tableQuery(query + tableId)
+        view = syn.tableQuery(query + synId)
     else:
-        view = syn.tableQuery(query + tableId + ' ' + clause)
+        view = syn.tableQuery(query + synId + ' ' + clause)
 
-    view = list(csv.DictReader(file(view.filepath)))
-    df = pandas.DataFrame(view)
-    df.set_index('id', inplace=True, drop=False)
+    df = view.asDataFrame()
+
     return df
 
 
-def updateTableView(syn, tableId, path, clause=None):
+def updateEntityView(syn, synId, path, clause=None):
     """
-      Update Table-View annotations by giving a user-defined manifest csv path
-      :param syn:            A Synapse object: syn = synapseclient.login() - Must be logged into synapse
-      :param synId:          A Synapse ID of Table-View (edit permission on its' files is required)
-      :param path:           An Absolute/relative (on current working directory) path to user-defined manifest csv file containing updates
-      :param clause:         A SQL clause to allow for sub-setting & row filtering to reduce data-size on download
+     Update Entity-View annotations by giving a user-defined manifest csv path with the same schema as the Entity-View
+      :param syn:            A Synapse object: syn = synapseclient.login(username, password) - Must be logged into synapse
+      :param synId:          A Synapse ID of an entity-view (Note: Edit permission on its' files is required)
+      :param path:           Current working directory absolute/relative path to user-defined manifest .csv file containing updated cells with the same schema as existing entity-view
+      :param clause:         A SQL clause to allow for sub-setting & row filtering in order to reduce the data-size on download
 
       Example:
-
-         updateTableView(syn, 'syn12345', 'projectX_annotation_updates.csv')
+         
+         updateEntityView(syn, 'syn12345', 'myproject_annotation_updates.csv')
          OR
-         updateTableView(syn, 'syn12345', 'projectX_annotation_updates.csv', 'where assay == 'geneExpression')
+         updateEntityView(syn, 'syn12345', 'myproject_annotation_updates.csv', 'where assay = 'geneExpression')
       """
 
-    view_df = _query2df(syn, tableId, clause)
     user_df = _csv2df(path)
+    view_df = _query2df(syn, synId, clause)
 
-    assert user_df.columns.isin(view_df.columns).all()
+    if user_df.empty:
+        logging.info("Uploaded dataframe is empty with nothing to update!")
+    else:
+        view_df.update(user_df)
 
-    view_df.update(user_df)
-    view = syn.store(syn.Table(tableId, view_df))
-    ##print(view)
+    schema_match = list(user_df.columns[~user_df.columns.isin(view_df.columns)])
 
-    logging.info("Completed updating annotation on table-view %s." % tableId)
-    ##assert isinstance(view, EntityView)
+    if not schema_match:
+        logging.info("Updated annotation's dataframe and entity-view's %s schemas don't match." % synId)
+    else:
+        logging.info("Updated annotations on entity-view %s." % synId)
+        view = syn.store(synapseclient.Table(synId, view_df))
