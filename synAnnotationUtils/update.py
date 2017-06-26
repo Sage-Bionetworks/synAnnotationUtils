@@ -162,7 +162,7 @@ def updateAnnoByIdDictFromMeta(syn, idDict, metaDf, refCol, fileExts, forceVersi
             exts = ')|('.join(fileExts)
             exts = r'(' + exts + ')'
             synEntityName = re.sub(exts, "", synEntity.name)
-            row = df.loc[df[refCol] == synEntityName]
+            row = metaDf.loc[metaDf[refCol] == synEntityName]
             synEntity[key] = map(str, row[key])[0]
             synEntity = syn.store(synEntity, forceVersion=forceVersion)
         logging.info("")
@@ -222,17 +222,19 @@ def updateFormatTypeByFileName(syn, synId, annoKey, annoDict, forceVersion=False
                     _helperUpdateFormatTypeByFileName(syn, synEntity, annoKey, annoDict, forceVersion)
 
 
-def _csv2df(path):
+def _csv2df(path, indexCol):
     """
     Reads users .csv file containing updated annotations and converts it into a pandas dataframe
     while removing all NA rows
 
-    :param path: Current working directory absolute/relative path to user-defined manifest .csv file containing
-                 updated cells with the same schema as existing entity-view
-    :return:     A dataframe containing modified information on an entity-view.
-                 Structured as synapse file Ids X standard synapse schema + annotation's schema
+    :param path:      Current working directory absolute/relative path to user-defined manifest .csv file containing
+                      updated cells with the same schema as existing entity-view
+    :param indexCol:  Column or field name of the synapse ROW_IDs. Pandas library reads the first unnamed column as
+                      'Unnamed: 0'.
+    :return:          A dataframe containing modified information on an entity-view.
+                      Structured as synapse file Ids X standard synapse schema + annotation's schema
     """
-    df = pandas.read_csv(path).dropna(how='all')
+    df = pandas.read_csv(path, index_col=indexCol).dropna(how='all')
 
     return df
 
@@ -259,7 +261,7 @@ def _query2df(syn, synId, clause):
     return df
 
 
-def updateEntityView(syn, synId, path, clause=None):
+def updateEntityView(syn, synId, path, indexCol, clause=None):
     """
     Update Entity-View annotations by giving a user-defined manifest csv path with the same schema as the Entity-View
 
@@ -267,16 +269,18 @@ def updateEntityView(syn, synId, path, clause=None):
     :param synId:     A Synapse ID of an entity-view (Note: Edit permission on its' files is required)
     :param path:      Current working directory absolute/relative path to user-defined manifest .csv file containing
                       updated cells with the same schema as existing entity-view
+    :param indexCol   Column or field name of the synapse ROW_IDs. Pandas library reads the first unnamed column as
+                      'Unnamed: 0'.
     :param clause:    A SQL clause to allow for sub-setting & row filtering in order to reduce the data-size on
                       download
 
     Examples:
 
-             updateEntityView(syn, 'syn12345', 'myproject_annotation_updates.csv')
-             updateEntityView(syn, 'syn12345', 'myproject_annotation_updates.csv', 'where assay = 'geneExpression')
+             updateEntityView(syn, 'syn12345', 'myproject_annotation_updates.csv', 'Unnamed: 0')
+             updateEntityView(syn, 'syn12345', 'myproject_annotation_updates.csv', 'Unnamed: 0', 'where assay = 'geneExpression')
     """
 
-    user_df = _csv2df(path)
+    user_df = _csv2df(path, indexCol)
     view_df = _query2df(syn, synId, clause)
 
     if user_df.empty:
@@ -284,16 +288,16 @@ def updateEntityView(syn, synId, path, clause=None):
     else:
         view_df.update(user_df)
 
-    schema_match = list(user_df.columns[~user_df.columns.isin(view_df.columns)])
+    schema_unmatch = list(user_df.columns[~user_df.columns.isin(view_df.columns)])
 
-    if not schema_match:
-        logging.info("Updated annotation's dataframe and entity-view's %s schemas don't match." % synId)
-    else:
+    if not schema_unmatch:
         logging.info("Updated annotations on entity-view %s." % synId)
         view = syn.store(synapseclient.Table(synId, view_df))
+    else:
+        logging.info("Updated annotation's dataframe and entity-view's %s schemas don't match." % synId)
 
 
-def expandFields(syn, projectId, viewId, scopes, viewName, path, viewType='file', clause=None, delta=False):
+def expandFields(syn, projectId, viewId, scopes, viewName, path, indexCol, viewType='file', clause=None, delta=False):
     """
     Based on an existing entity-view, create a new entity-view with additional fields and/or columns.
     user may choose to keep or discard the initial entity-view since this function would duplicate an entity-view.
@@ -305,6 +309,8 @@ def expandFields(syn, projectId, viewId, scopes, viewName, path, viewType='file'
     :param viewName:    The name of your entity-view
     :param path:        Current working directory absolute/relative path to user-defined manifest .csv file containing
                         updated fields and cells based on and in addition to an existing entity-view schema.
+    :param indexCol     Column or field name of the synapse ROW_IDs. Pandas library reads the first unnamed column as
+                        'Unnamed: 0'.
     :param viewType:    The type of entity-view to display: either 'file' or 'project'. Defaults to 'file'
     :param clause:      A SQL clause to allow for sub-setting & row filtering in order to reduce the data-size on
                         download
@@ -314,10 +320,10 @@ def expandFields(syn, projectId, viewId, scopes, viewName, path, viewType='file'
     Example:
 
         expandFields(syn, 'syn1234', 'syn3333', ['syn1255', 'syn1266'], 'my projects entityview',
-                    'myproject_annotation_updates.csv', viewType='file', clause=None, delta=True)
+                    'myproject_annotation_updates.csv', 'Unnamed: 0', viewType='file', clause=None, delta=True)
     """
 
-    user_df = _csv2df(path)
+    user_df = _csv2df(path, indexCol)
     view_df = _query2df(syn, viewId, clause)
 
     # Find the new fields/columns in desired entity-views schema
@@ -337,16 +343,16 @@ def expandFields(syn, projectId, viewId, scopes, viewName, path, viewType='file'
         syn.delete(previous_view)
 
     if clause is None:
-        new_view = syn.tableQuery('select * from ' + schema.id)
+        new_view = syn.tableQuery('select * from %s' + schema.id)
     else:
         new_view = syn.tableQuery('select * from ' + schema.id + ' ' + clause)
 
     new_view = new_view.asDataFrame()
-    schema_match = list(user_df.columns[~user_df.columns.isin(view_df.columns)])
+    schema_unmatch = list(user_df.columns[~user_df.columns.isin(view_df.columns)])
 
-    if not schema_match:
-        logging.info("Updated annotation's dataframe and entity-view's %s schemas don't match." % viewId)
-    else:
+    if not schema_unmatch:
         new_view.update(user_df)
         new_view_and_fields = syn.store(synapseclient.Table(schema.id, new_view))
+    else:
+        logging.info("Updated annotation's dataframe and entity-view's %s schemas don't match." % viewId)
 
