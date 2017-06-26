@@ -235,6 +235,7 @@ def _csv2df(path, indexCol):
                       Structured as synapse file Ids X standard synapse schema + annotation's schema
     """
     df = pandas.read_csv(path, index_col=indexCol).dropna(how='all')
+    df = df.dropna(axis=1, how='all')
 
     return df
 
@@ -301,6 +302,8 @@ def expandFields(syn, projectId, viewId, scopes, viewName, path, indexCol, viewT
     """
     Based on an existing entity-view, create a new entity-view with additional fields and/or columns.
     user may choose to keep or discard the initial entity-view since this function would duplicate an entity-view.
+    Additional columns is checked against synapse minimal schema; thus, both existing and new columns must be present
+    in user's csv file.
 
     :param syn:         A Synapse object: syn = synapseclient.login(username, password) - Must be logged into synapse
     :param projectId:   A Synapse ID of a project (Note: Edit permission is required)
@@ -324,10 +327,11 @@ def expandFields(syn, projectId, viewId, scopes, viewName, path, indexCol, viewT
     """
 
     user_df = _csv2df(path, indexCol)
-    view_df = _query2df(syn, viewId, clause)
 
-    # Find the new fields/columns in desired entity-views schema
-    new_cols = list(user_df.columns[~user_df.columns.isin(view_df.columns)].dropna())
+    minimal_view_schema_column_names = [x['name'] for x in syn.restGET("/column/tableview/defaults/file")['list']]
+
+    # Find existing and new fields/columns in users entity-views schema
+    new_cols = list(user_df.columns[~user_df.columns.isin(minimal_view_schema_column_names)].dropna())
     col_types = pandas.DataFrame(user_df[new_cols].dtypes)
     col_types = col_types.replace(['object', 'int64', 'float64'], ['STRING', 'INTEGER', 'FLOAT'])
 
@@ -337,22 +341,25 @@ def expandFields(syn, projectId, viewId, scopes, viewName, path, indexCol, viewT
     logging.info("Creating a new entity-view schema based on %s." % viewId)
     schema = syn.store(synapseclient.EntityViewSchema(name=viewName, columns=added_cols_ids, parent=projectId,
                                                       scopes=scopes, view_type=viewType))
-    if delta:
-        logging.info("Deleting previous entity-view %s." % viewId)
-        previous_view = syn.get(viewId)
-        syn.delete(previous_view)
 
     if clause is None:
-        new_view = syn.tableQuery('select * from %s' + schema.id)
+        new_view = syn.tableQuery('select * from ' + schema.id)
     else:
         new_view = syn.tableQuery('select * from ' + schema.id + ' ' + clause)
 
     new_view = new_view.asDataFrame()
-    schema_unmatch = list(user_df.columns[~user_df.columns.isin(view_df.columns)])
+
+    schema_unmatch = list(user_df.columns[~user_df.columns.isin(new_view.columns)])
 
     if not schema_unmatch:
         new_view.update(user_df)
         new_view_and_fields = syn.store(synapseclient.Table(schema.id, new_view))
+
     else:
-        logging.info("Updated annotation's dataframe and entity-view's %s schemas don't match." % viewId)
+        logging.info("Updated annotation's dataframe and new entity-view's %s schemas don't match." % viewId)
+
+    if delta:
+        logging.info("Deleting previous entity-view %s." % viewId)
+        previous_view = syn.get(viewId)
+        syn.delete(previous_view)
 
