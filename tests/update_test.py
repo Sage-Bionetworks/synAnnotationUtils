@@ -7,63 +7,69 @@ from nose.tools import assert_equals
 
 def test_update_entityview():
     '''
-    TODO:    Make test denovo
-    :return: None
+    :return: None or Error
 
         Example: nosetests -vs tests/update_test.py:test_update_entityview
     '''
     syn = synapseclient.login()
 
-    viewId = 'syn10142572'
-    fileName = 'changed_view.csv'
+    view_id = 'syn10142572'
+    file_name = 'changed_view.csv'
 
-    view = syn.tableQuery('select * from %s' % viewId)
-    view_df = view.asDataFrame()
+    # Get the current entity-view data frame from synapse
+    view_df = synAnnotationUtils.update.query2df(syn, view_id, clause=None)
 
-    # make some changes and save the changes to a csv file
+    # make some changes to its' annotations and save the changed entity-view data frame to a csv file
     view_df.iloc[1, view_df.columns.get_loc('medRecord')] = 'test'
-    view_df.to_csv(fileName)
 
-    # update the entity-view
-    synAnnotationUtils.update.updateEntityView(syn=syn, synId=viewId, path=fileName, indexCol='Unnamed: 0')
+    # Users may choose to save the data frame as csv files in which case the data frame index must not be saved
+    # view_df.to_csv(file_name, index=False)
 
-    # Get the updated entity-view and convert into dataframe
-    view = syn.tableQuery('select * from %s' % viewId)
-    view_df = view.asDataFrame()
+    # update the entity-view annotations on synapse using the csv file
+    synAnnotationUtils.update.updateEntityView(syn=syn, syn_id=view_id, path=file_name, index_col='index')
+
+    # Get the updated entity-view data frame from synapse
+    view_df = synAnnotationUtils.update.query2df(syn, view_id, clause=None)
 
     # test if changes have been made to annotations
     assert_equals(view_df.iloc[1, view_df.columns.get_loc('medRecord')], 'test')
 
     # revert changes back to original
     view_df.iloc[1:3, view_df.columns.get_loc('medRecord')] = 'mapping'
-    view = syn.store(synapseclient.Table(viewId, view_df))
+
+    view_df = synAnnotationUtils.update.dropIndices(index_col='index', view_df=view_df)
+
+    view = syn.store(synapseclient.Table(view_id, view_df))
 
 
 def test_copy_and_update_entityview():
     '''
-    TODO:    Make test denovo
-    :return: None
+    :return: None or Error
 
          Example: nosetests -vs tests/update_test.py:test_copy_and_update_entityview
     '''
     syn = synapseclient.login()
 
-    parentId = 'syn8392128'
-    viewId = 'syn10142572'
-    scopeList = ['syn8392160']
-    fileName = 'changed_view.csv'
-    newName = 'adding columns test'
-    colIndex = 'Unnamed: 0'
+    parent_id = 'syn8392128'
+    view_id = 'syn10142572'
+    scope_list = ['syn8392160']
+    file_name = 'changed_view.csv'
+    new_name = 'adding columns test 100'
+    col_index = 'index'
 
-    view = syn.tableQuery('select * from %s' % viewId)
-    view_df = view.asDataFrame()
+    view_df = synAnnotationUtils.update.query2df(syn, view_id, clause=None)
 
-    # add a column to the entity-view dataframe and save as csv
+    # add a non-empty column to the entity-view data frame and save it as a csv file
     col_df = pandas.DataFrame({'labResult': ['pos', 'neg', 'neg', 'neg']})
     col_df.set_index(view_df.index, inplace=True)
     view_df = view_df.join(col_df)
-    view_df.to_csv(fileName)
 
-    synAnnotationUtils.update.expandFields(syn, parentId, viewId, scopeList, newName, fileName, colIndex, viewType='file', clause=None, delta=False)
+    view_df = synAnnotationUtils.update.dropSynapseIndices(view_df)
+
+    # Users may choose to save the data frame as csv files in which case the data frame index must not be saved
+    # view_df.to_csv(file_name, index=False)
+
+    synAnnotationUtils.update.expandFields(syn, parent_id, view_id, scope_list, new_name, file_name, col_index,
+                                           view_type='file', clause=None, delta=False)
 
 
