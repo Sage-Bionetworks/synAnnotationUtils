@@ -7,11 +7,11 @@ from nose.tools import assert_equals
 
 
 def test_update_entityview():
-    '''
+    """
     :return: None or Error
 
         Example: nosetests -vs tests/update_test.py:test_update_entityview
-    '''
+    """
     syn = synapseclient.login()
 
     view_id = 'syn10168977'
@@ -50,18 +50,18 @@ def test_update_entityview():
 
 
 def test_copy_and_update_entityview():
-    '''
+    """
     :return: None or Error
 
          Example: nosetests -vs tests/update_test.py:test_copy_and_update_entityview
-    '''
+    """
     syn = synapseclient.login()
 
     parent_id = 'syn10163670'
     view_id = 'syn10168977'
     scope_list = ['syn10163672']
     file_name = 'changed_view_test.csv'
-    new_name = 'adding columns test 01'
+    new_name = 'adding columns test 05'
     col_index = 'index'
 
     view_df = synAnnotationUtils.update.query2df(syn, view_id, clause=None)
