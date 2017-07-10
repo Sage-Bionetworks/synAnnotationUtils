@@ -222,22 +222,38 @@ def updateFormatTypeByFileName(syn, synId, annoKey, annoDict, forceVersion=False
                     logging.info("Getting File %s ..." % i[1])
                     _helperUpdateFormatTypeByFileName(syn, synEntity, annoKey, annoDict, forceVersion)
 
+def makeIndex(df):
+    """
 
-def _csv2df(path, index_col):
+    :param df:
+    :return:
+    """
+    unique_id = pandas.Series(['ROW_ID', 'ROW_VERSION', 'etag'])
+
+    if not unique_id.isin(df.columns).all():
+        logging.info('To update a file view the columns ROW_ID, ROW_VERSION, and etag must exist.')
+    else:
+        index = df.apply(lambda x: '%s_%s_%s' % (x['ROW_ID'], x['ROW_VERSION'], x['etag']), axis=1)
+        df.insert(0, 'index', index)
+        df.set_index(index, inplace=True, drop=True)
+        return df
+
+
+def _csv2df(path):
     """
     Reads users .csv file containing updated annotations and converts it into a pandas data frame
     while removing rows and columns with all NA values.
 
     :param path:      Current working directory absolute/relative path to user-defined manifest .csv file containing
                       updated cells with the same schema as existing entity-view
-    :param index_col:  Column or field name of the synapse ROW_IDs and Row_Versions and etag concatenated by _.
 
     :return:          A data frame containing modified information on an entity-view.
                       Structured as synapse file Ids X standard minimal synapse schema + annotation's schema
     """
 
-    df = pandas.read_csv(path, index_col=index_col).dropna(how='all')
+    df = pandas.read_csv(path).dropna(how='all')
     df = df.dropna(axis=1, how='all')
+    df = makeIndex(df)
 
     return df
 
@@ -245,10 +261,10 @@ def _csv2df(path, index_col):
 def _getView(syn, view_id, clause=None):
     """
 
-    :param syn:
-    :param view_id:
-    :param clause:
-    :return:
+    :param syn:      A Synapse object: syn = synapseclient.login(username, password) - Must be logged into synapse
+    :param view_id:  A Synapse ID of an entity-view (Note: Edit permission on its' files is required)
+    :param clause:   A SQL clause to allow for sub-setting & row filtering in order to reduce the data-size
+    :return:         An object of type synapse entity-view
     """
 
     if clause is None:
@@ -268,36 +284,21 @@ def query2df(syn, view_id, clause):
     dropping the index column.
 
     :param syn:         A Synapse object: syn = synapseclient.login(username, password) - Must be logged into synapse
-    :param view_id:       A Synapse ID of an entity-view (Note: Edit permission on its' files is required)
-    :param clause:      A SQL clause to allow for sub-setting & row filtering in order to reduce the data-size on dow
-    :return:            A dataframe with the entity-view schema and content
+    :param view_id:     A Synapse ID of an entity-view (Note: Edit permission on its' files is required)
+    :param clause:      A SQL clause to allow for sub-setting & row filtering in order to reduce the data-size
+    :return:            A data frame with the entity-view schema and content
     """
 
     view = _getView(syn=syn, view_id=view_id, clause=clause)
 
     f = csv.DictReader(file(view.filepath))
     df = pandas.DataFrame(list(f))
-
-    index = df.apply(lambda x: '%s_%s_%s' % (x['ROW_ID'], x['ROW_VERSION'], x['etag']), axis=1)
-    df.insert(0, 'index', index)
-    df.set_index(index, inplace=True, drop=False)
+    df = makeIndex(df)
 
     return df
 
 
-def dropSynapseIndices(view_df):
-    """
-    Removes synapse schema class 'ROW_VERSION' and 'ROW_ID' columns.
-
-    :param view_df:  An entity-view data frame with the possible 'ROW_VERSION' and 'ROW_ID' columns
-    :return:         An entity-view data frame without the 'ROW_VERSION' and 'ROW_ID' columns
-    """
-    if {'ROW_VERSION', 'ROW_ID'}.issubset(view_df.columns):
-        view_df.drop(['ROW_VERSION', 'ROW_ID'], axis=1, inplace=True)
-    return view_df
-
-
-def dropIndices(index_col, view_df):
+def dropIndex(index_col, view_df):
     """
     Removes user specified index column in addition to synapse schema class 'ROW_VERSION' and 'ROW_ID' columns.
 
@@ -308,36 +309,70 @@ def dropIndices(index_col, view_df):
                        and 'ROW_ID' columns.
     """
 
-    if {index_col, 'ROW_VERSION', 'ROW_ID'}.issubset(view_df.columns):
-        view_df.drop([index_col, 'ROW_VERSION', 'ROW_ID'], axis=1, inplace=True)
+    if {index_col}.issubset(view_df.columns):
+        view_df.drop([index_col], axis=1, inplace=True)
     return view_df
+
+
+def dropSynapseIndices(df):
+    """
+    Removes synapse schema class 'ROW_VERSION' and 'ROW_ID' columns.
+
+    :param df:  An entity-view data frame with the possible 'ROW_VERSION' and 'ROW_ID' columns
+    :return:    An entity-view data frame without the 'ROW_VERSION' and 'ROW_ID' columns
+    """
+    if {'ROW_VERSION', 'ROW_ID'}.issubset(df.columns):
+        df.drop(['ROW_VERSION', 'ROW_ID'], axis=1, inplace=True)
+    return df
+
+
+def _dropMinimal(syn, df):
+    """
+    Drops Synapse's standard minimal columns except from etag from a dataframe.
+
+    :param syn:  A Synapse object: syn = synapseclient.login(username, password) - Must be logged into synapse
+    :param df:   A data frame containing synapse minimal schema
+    :return:
+    """
+
+    minimal_view_schema_column_names = [x['name'] for x in syn.restGET("/column/tableview/defaults/file")['list']]
+    minimal_view_schema_column_names.remove('etag')
+
+    df_reduced = df.drop(df.ix[:, minimal_view_schema_column_names + ['ROW_ID', 'ROW_VERSION']].head(0).columns, axis=1)
+
+    return df_reduced
 
 
 def _checkSave(syn, new_view, current_view, schema_id, index_col='index'):
     """
-    Checks if the schema of updated entity-view matches the current entity-view. If and only if the schemas match
-    then it stores the updated entity-view by passing the schema id and entity-view data frame. If not, then it
-    informs the user that the update was not completed and lists the unmatched columns in schema.
+    Checks if the user defined schema of updated entity-view matches the current entity-view.
+    If and only if the schemas matches, then it stores the updated entity-view by passing the schema id
+    and entity-view data frame. If not, then it informs the user that the update was not completed and
+    lists the unmatched columns in schema.
 
     :param new_view:      An entity-view data frame with updated cells
-    :param current_view:  An existing entity-view data frame with its current cells as it apears on synapse
+    :param current_view:  An existing entity-view data frame with updated cells
     :param schema_id:     The schemas' synapse id of the existing entity-view
 
     :return:              None, with an updated entity-view on synapse or a logged info on which columns
                           caused the schema mismatch if no errors occurs.
     """
 
-    schema_unmatch = list(new_view.columns[~new_view.columns.isin(current_view.columns)])
+    new_view_user_schema = _dropMinimal(syn, new_view)
+    current_view_user_schema = _dropMinimal(syn, current_view)
+    matching_columns = new_view_user_schema.columns.isin(current_view_user_schema.columns)
+
+    schema_unmatch = list(new_view_user_schema.columns[~matching_columns])
 
     if not schema_unmatch:
-        logging.info("Updated annotations on entity-view %s." % schema_id)
+        logging.info("Updating annotations on entity-view %s." % schema_id)
 
-        current_view = dropIndices(index_col, current_view)
-
-        view = syn.store(synapseclient.Table(schema_id, current_view))
+        if index_col in new_view.columns:
+            new_view = dropIndex(index_col, new_view)
+        view = syn.store(synapseclient.Table(schema_id, new_view))
     else:
         schema_unmatch_names = ''.join(map(str, schema_unmatch))
-        logging.info(''.join(["Updated annotation's data frame and entity-view's ", schema_id, " schema names ",
+        logging.info(''.join(["Updated data frame and entity-view's ", schema_id, " schema names ",
                               schema_unmatch_names, " don't match."]))
 
 
@@ -346,10 +381,12 @@ def updateEntityView(syn, syn_id, path, index_col='index', clause=None):
     Update Entity-View annotations by giving a user-defined manifest csv path with the same schema as the Entity-View
 
     :param syn:       A Synapse object: syn = synapseclient.login(username, password) - Must be logged into synapse
-    :param syn_id:     A Synapse ID of an entity-view (Note: Edit permission on its' files is required)
+    :param syn_id:    A Synapse ID of an entity-view (Note: Edit permission on its' files is required)
     :param path:      Current working directory absolute/relative path to user-defined manifest .csv file containing
                       updated cells with the same schema as existing entity-view
-    :param index_col
+    :param index_col  Updated dataframe column name that represents the unique-id of an entity-view rows in the format
+                      of ROW_ID, ROW_VERSION, etag concatenated by '_':
+                      df.apply(lambda x: '%s_%s_%s' % (x['ROW_ID'], x['ROW_VERSION'], x['etag']), axis=1)
     :param clause:    A SQL clause to allow for sub-setting & row filtering in order to reduce the data-size on
                       download
 
@@ -360,15 +397,19 @@ def updateEntityView(syn, syn_id, path, index_col='index', clause=None):
                              'where assay = 'geneExpression')
     """
 
-    user_df = _csv2df(path, index_col)
-    view_df = query2df(syn, syn_id, clause)
+    user_df = _csv2df(path)
+    current_view = query2df(syn, syn_id, clause)
 
     if user_df.empty:
         logging.info("Uploaded data frame is empty with nothing to update!")
     else:
+        user_df = dropIndex(index_col, user_df)
+        user_df = dropSynapseIndices(user_df)
+
+        view_df = current_view
         view_df.update(user_df)
 
-    _checkSave(syn=syn, new_view=user_df, current_view=view_df, schema_id=syn_id, index_col=index_col)
+        _checkSave(syn=syn, new_view=view_df, current_view=current_view, schema_id=syn_id, index_col=index_col)
 
 
 def expandFields(syn, project_id, view_id, scopes, view_name, path, index_col='index', view_type='file', clause=None,
@@ -378,18 +419,18 @@ def expandFields(syn, project_id, view_id, scopes, view_name, path, index_col='i
     user may choose to keep or discard the initial entity-view since this function would duplicate an entity-view.
     Both existing and new columns must be present and not empty in user's csv file.
 
-    :param syn:         A Synapse object: syn = synapseclient.login(username, password) - Must be logged into synapse
+    :param syn:          A Synapse object: syn = synapseclient.login(username, password) - Must be logged into synapse
     :param project_id:   A Synapse ID of a project (Note: Edit permission is required)
     :param view_id:      A Synapse ID of an entity-view (Note: Edit permission on its' files is required)
-    :param scopes:      A list of Projects/Folders or their ids
+    :param scopes:       A list of Projects/Folders or their ids
     :param view_name:    The name of your entity-view
-    :param path:        Current working directory absolute/relative path to user-defined manifest .csv file containing
-                        updated fields and cells based on and in addition to an existing entity-view schema.
+    :param path:         Current working directory absolute/relative path to user-defined manifest .csv file containing
+                         updated fields and cells based on and in addition to an existing entity-view schema.
     :param index_col
     :param view_type:    The type of entity-view to display: either 'file' or 'project'. Defaults to 'file'
-    :param clause:      A SQL clause to allow for sub-setting & row filtering in order to reduce the data-size on
-                        download
-    :param delta:       Boolean indicating whether to delete the entity-view with the original schema. Default is False
+    :param clause:       A SQL clause to allow for sub-setting & row filtering in order to reduce the data-size on
+                         download
+    :param delta:        Boolean indicating whether to delete the entity-view with the original schema. Default is False
 
     Example:
 
@@ -397,13 +438,18 @@ def expandFields(syn, project_id, view_id, scopes, view_name, path, index_col='i
                     'myproject_annotation_updates.csv', 'index', viewType='file', clause=None, delta=True)
     """
 
-    user_df = _csv2df(path, index_col)
-    user_df = dropIndices(index_col, user_df)
+    user_df = _csv2df(path)
+    user_df = dropIndex(index_col, user_df)
+    user_df = dropSynapseIndices(user_df)
 
     minimal_view_schema_column_names = [x['name'] for x in syn.restGET("/column/tableview/defaults/file")['list']]
 
+    cols = syn.getColumns(view_id)
+    cols = pandas.DataFrame(list(cols))
+
     # Find existing and new fields/columns in users entity-views schema
     new_cols = list(user_df.columns[~user_df.columns.isin(minimal_view_schema_column_names)].dropna())
+    # user_df.columns[~user_df.columns.isin(minimal_view_schema_column_names) & user_df.columns.isin(cols.name)]
 
     # TODO: pull the existing columns types
     col_types = pandas.DataFrame(user_df[new_cols].dtypes)
@@ -418,8 +464,10 @@ def expandFields(syn, project_id, view_id, scopes, view_name, path, index_col='i
                                                       scopes=scopes, view_type=view_type))
 
     new_view = query2df(syn=syn, view_id=schema.id, clause=clause)
+    view_df = new_view
+    view_df.update(user_df)
 
-    _checkSave(syn=syn, new_view=user_df, current_view=new_view, schema_id=schema.id, index_col=index_col)
+    _checkSave(syn=syn, new_view=view_df, current_view=new_view, schema_id=schema.id, index_col=index_col)
 
     if delta:
         logging.info(''.join(['Deleting previous entity-view: ', view_id]))
