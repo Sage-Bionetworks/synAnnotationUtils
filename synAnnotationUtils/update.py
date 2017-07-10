@@ -446,7 +446,7 @@ def expandFields(syn, project_id, view_id, scopes, view_name, path, index_col='i
     user_df = dropIndex(index_col, user_df)
     user_df = dropSynapseIndices(user_df)
 
-    cols = pandas.DataFrame(list(syn.getColumns('syn10168977')))
+    cols = pandas.DataFrame(list(syn.getColumns(view_id)))
 
     # Find the new fields/columns that are not in current entity-view
     new_cols = list(user_df.columns[~user_df.columns.isin(list(cols.name))].dropna())
