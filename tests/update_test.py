@@ -8,6 +8,8 @@ from nose.tools import assert_equals
 
 def test_update_entityview():
     """
+    Annotations test project on synapse: https://www.synapse.org/#!Synapse:syn10163670
+
     :return: None or Error
 
         Example: nosetests -vs tests/update_test.py:test_update_entityview
@@ -47,6 +49,8 @@ def test_update_entityview():
 
 def test_copy_and_update_entityview():
     """
+    Annotations test project on synapse: https://www.synapse.org/#!Synapse:syn10163670
+
     :return: None or Error
 
          Example: nosetests -vs tests/update_test.py:test_copy_and_update_entityview
