@@ -1,9 +1,10 @@
 ## Create sync manifest
 1. You can create a sync manifest by simply running 
-```   
+   ```   
    $ python sync_manifest.py -c -d home_dir_of_files/ -id syn1234567
-```
+   ```
    `syn1234567` is the Synapse ID of a Synapse Project or a Synapse Folder that is the equivalent to `home_dir_of_files` in the directory hierarchy. 
+
     This will generate a tsv file lists out all the files under `home_dir_of_files` and create mirrored folder hierarchy on Synapse server at the same time. Please note no files has been uploaded at this time. 
 
 2. Add annotation keys
@@ -11,7 +12,8 @@
    ```
    $ python sync_manifest.py -c -d home_dir_of_files/ -id syn1234567 -f project_annotations.json
    ```
-     We suggest you use the set of Sage standard annotation keys from our [repo](https://raw.githubusercontent.com/Sage-Bionetworks/synapseAnnotations/master/synapseAnnotations/data/common/minimal_Sage_standard.json)
+   We suggest you use the set of Sage standard annotation keys from our [repo](https://raw.githubusercontent.com/Sage-Bionetworks/synapseAnnotations/master/synapseAnnotations/data/common/minimal_Sage_standard.json)
+     
    In this case, the script is 
    ```
    $ python sync_manifest.py -c -d home_dir_of_files/ -id syn1234567 -f https://raw.githubusercontent.com/Sage-Bionetworks/synapseAnnotations/master/synapseAnnotations/data/common/minimal_Sage_standard.json
@@ -22,6 +24,7 @@
 $ python sync_manifest.py -c -d home_dir_of_files/ -id syn1234567 -f https://raw.githubusercontent.com/Sage-Bionetworks/synapseAnnotations/master/synapseAnnotations/data/common/minimal_Sage_standard.json -n 2
 ```   
    Once you set `n=2`, the folder with a depth greater than 2 will be flattened. 
+   
    For example, if your folder structure on your local server is like below.
 ```   
    --- home_dir_of_files
@@ -38,6 +41,7 @@ $ python sync_manifest.py -c -d home_dir_of_files/ -id syn1234567 -f https://raw
 
 ## Upload and annotate files via sync function
 Once you made all the edits to your sync manifest (default manifest name is "output.tsv") to Synapse.
+
 ```
 $ python sync_manifest.py -u -m output.tsv
 ```
