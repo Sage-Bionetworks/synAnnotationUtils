@@ -157,7 +157,7 @@ def main():
     parser.add_argument('-c','--create', help='create manifest', action='store_true')
     parser.add_argument('-u','--upload', help='sync to synapse using manifest', action='store_true')
     parser.add_argument('-d','--dir', help='local directory')
-    parser.add_argument('--id',help='Synapse ID of the project/file')
+    parser.add_argument('-i','--id',help='Synapse ID of the project/file')
     parser.add_argument('-f','--files',
                         help='Path(s) to JSON file(s) of annotations. optional', nargs='+')
     parser.add_argument('-n','--n', help='depth of hierarchy, DEFAULT is None', default=None)
