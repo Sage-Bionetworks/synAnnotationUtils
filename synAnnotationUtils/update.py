@@ -4,8 +4,9 @@ import synapseutils
 import logging
 
 
-# Update Annotations 
-## by dict
+'''Updates File entity Annotations'''
+ 
+# By user defined dictionary containing annotations 
 def updateAnnoByDict(syn,synId,annoDict,forceVersion = False):
     """
     Update annotations by giving a dict
@@ -48,7 +49,7 @@ def _helperUpdateAnnoByDict(syn,synEntity,annoDict,forceVersion):
     logging.info("Completed.")
 
 
-## by idDict
+# by idDict
 def updateAnnoByIdDictFromDict(syn,idDict,annoDict,forceVersion = False):
     
     """
