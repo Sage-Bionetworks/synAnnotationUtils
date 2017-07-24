@@ -1,4 +1,4 @@
-##Create sync manifest
+## Create sync manifest
 1. You can create a sync manifest by simply running 
 ```   
    $ python sync_manifest.py -c -d home_dir_of_files/ -id syn1234567
@@ -36,7 +36,7 @@ $ python sync_manifest.py -c -d home_dir_of_files/ -id syn1234567 -f https://raw
  ```
   Since folder 'sample1' under 'rnaSeq' has a depth of 3, the files inside the folder will be renamed to "sample1_file1.txt" and "sample1_file2.csv" and to be placed under "rnaSeq" folder on the Synapse server.
 
-##Upload and annotate files via sync function
+## Upload and annotate files via sync function
 Once you made all the edits to your sync manifest (default manifest name is "output.tsv") to Synapse.
 ```
 $ python sync_manifest.py -u -m output.tsv
