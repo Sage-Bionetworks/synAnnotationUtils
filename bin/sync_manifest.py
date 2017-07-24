@@ -109,7 +109,7 @@ def _getAnnotationKey(dirs):
             if ext=='.json':
                 data=json.load(jfile)
             else:
-                sys.stdout.write('File %s cannot be parsed. JSON format is required. \n' % di)
+                sys.stderr.write('File %s cannot be parsed. JSON format is required. \n' % di)
             data = pd.DataFrame(data)
             annotation_key = data['name']
             key_list = key_list + list(annotation_key)
@@ -157,7 +157,7 @@ def main():
     parser.add_argument('-c','--create', help='create manifest', action='store_true')
     parser.add_argument('-u','--upload', help='sync to synapse using manifest', action='store_true')
     parser.add_argument('-d','--dir', help='local directory')
-    parser.add_argument('-id','--id',help='Synapse ID of the project/file')
+    parser.add_argument('--id',help='Synapse ID of the project/file')
     parser.add_argument('-f','--files',
                         help='Path(s) to JSON file(s) of annotations. optional', nargs='+')
     parser.add_argument('-n','--n', help='depth of hierarchy, DEFAULT is None', default=None)
@@ -184,7 +184,7 @@ def main():
         sys.stdout.write('Preparing to upload files\n')
         synu.syncToSynapse(syn, args.manifest)
     else:
-        sys.stdout.write('Please enter python sync_manifest.py -h for more information.\n')
+        sys.stderr.write('Please enter python sync_manifest.py -h for more information.\n')
 
 if __name__ == '__main__':
     main()
