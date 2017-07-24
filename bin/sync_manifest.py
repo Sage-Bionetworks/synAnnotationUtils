@@ -51,9 +51,9 @@ $ python sync_manifest.py -u -m output.tsv
 import os
 import sys
 import json
-import pandas as pd
 import urlparse
 import urllib
+import pandas as pd
 import synapseclient
 import synapseutils as synu
 from synapseclient import Folder
@@ -74,7 +74,8 @@ def _getLists(local_root,depth):
         else:
             dir_list.append(dirpath)
         for name in filenames:
-            file_list.append(os.path.join(dirpath,name))
+            if not name.startswith('.'):
+                file_list.append(os.path.join(dirpath,name))
     return dir_list,file_list
 
 # walk through Synapse
@@ -145,9 +146,16 @@ def create(file_list,key_list,synapse_dir,local_root,depth):
 
     result = pd.concat([result,pd.DataFrame(columns=key_list)])
     result = result[cols + key_list] # reorder the columns
-
-    result.to_csv('output.tsv',sep = '\t', index=False)
-    sys.stdout.write('Manifest has been created. Stored as \"output.tsv\"\n')
+    
+    stdout = sys.stdout # keep a local copy
+    
+    sys.stdout = open("output.tsv",'w')
+    result.to_csv(sys.stdout, sep="\t",index=False)
+    sys.stdout.close()
+    
+    sys.stdout = stdout # put it back
+    
+    sys.stderr.write('Manifest has been created. Stored as \"output.tsv\"\n')
 
 def main():
     import argparse
@@ -156,17 +164,19 @@ def main():
     parser = argparse.ArgumentParser(description="Create or upload sync manifest")
     parser.add_argument('-c','--create', help='create manifest', action='store_true')
     parser.add_argument('-u','--upload', help='sync to synapse using manifest', action='store_true')
-    parser.add_argument('-d','--dir', help='local directory')
-    parser.add_argument('-i','--id',help='Synapse ID of the project/file')
+    parser.add_argument('-d','--directory', help='local directory')
+    parser.add_argument('--id',help='Synapse ID of the project/file')
     parser.add_argument('-f','--files',
                         help='Path(s) to JSON file(s) of annotations. optional', nargs='+')
     parser.add_argument('-n','--n', help='depth of hierarchy, DEFAULT is None', default=None)
-    parser.add_argument('-m','--manifest',help='manifest file')
+    parser.add_argument('-m','--manifest',help='manifest file to be uploaded')
+    
     args=parser.parse_args()
+
     
     if args.create:
-        sys.stdout.write('Preparing to create manifest\n')
-        local_root = args.dir
+        sys.stderr.write('Preparing to create manifest\n')
+        local_root = args.directory
         synapse_id = args.id
         annotations = args.files
         depth = args.n
@@ -175,13 +185,13 @@ def main():
             depth = int(depth) 
 
         dir_list, file_list = _getLists(local_root,depth)
-        print(dir_list)
+
         synapse_dir = _getSynapseDir(syn, synapse_id,local_root,dir_list)
         key_list = _getAnnotationKey(annotations)
 
         create(file_list,key_list,synapse_dir,local_root,depth)
     elif args.upload:
-        sys.stdout.write('Preparing to upload files\n')
+        sys.stderr.write('Preparing to upload files\n')
         synu.syncToSynapse(syn, args.manifest)
     else:
         sys.stderr.write('Please enter python sync_manifest.py -h for more information.\n')
