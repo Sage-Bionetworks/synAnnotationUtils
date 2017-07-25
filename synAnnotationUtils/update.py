@@ -328,6 +328,8 @@ def dropMinimal(syn, df):
     """
 
     minimal_view_schema_column_names = [x['name'] for x in syn.restGET("/column/tableview/defaults/file")['list']]
+
+    # keep the etag in columns
     minimal_view_schema_column_names.remove('etag')
 
     df_reduced = df.drop(df.ix[:, minimal_view_schema_column_names + ['ROW_ID', 'ROW_VERSION']].head(0).columns, axis=1)
@@ -352,7 +354,6 @@ def _checkSave(syn, new_view, current_view, schema_id):
     new_view = dropMinimal(syn, new_view)
     current_view = dropMinimal(syn, current_view)
     matching_columns = new_view.columns.isin(current_view.columns)
-
     schema_unmatch = list(new_view.columns[~matching_columns])
 
     if not schema_unmatch:
@@ -449,11 +450,12 @@ def expandFields(syn, project_id, view_id, scopes, view_name, path, view_type='f
                                                       scopes=scopes, view_type=view_type))
 
     # get the new entity-view and update the empty cells
-    new_view = query2df(syn=syn, view_id=schema.id, clause=clause)
-    view_df = new_view
+    current_view = query2df(syn=syn, view_id=schema.id, clause=clause)
+    view_df = current_view
+
     view_df.update(user_df)
 
-    _checkSave(syn=syn, new_view=view_df, current_view=new_view, schema_id=schema.id)
+    _checkSave(syn=syn, new_view=view_df, current_view=current_view, schema_id=schema.id)
 
     # if delta is true, then delete the previous/original entity-view
     if delta:
