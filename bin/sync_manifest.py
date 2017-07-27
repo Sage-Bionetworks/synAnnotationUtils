@@ -14,7 +14,6 @@ import urllib
 import pandas as pd
 
 import synapseclient
-from synapseclient import Folder
 import synapseutils
 
 # walk through local directory
@@ -51,8 +50,8 @@ def _getSynapseDir(syn, synapse_id, local_root, dir_list):
 
     for directory in dir_list:
         if not synapse_dir.has_key(directory):
-            new_folder = Folder(os.path.basename(directory),
-                                synapse_dir[os.path.dirname(directory)])
+            new_folder = synapseclient.Folder(os.path.basename(directory),
+                                              synapse_dir[os.path.dirname(directory)])
             new_folder = syn.store(new_folder)
             synapse_dir[directory] = new_folder.id
     return synapse_dir
