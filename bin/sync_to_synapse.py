@@ -20,8 +20,6 @@ def sync(args, syn):
 def main():
     import argparse
 
-    syn = synapseclient.login()
-
     parser_sync = argparse.ArgumentParser(description='Synchronize files described in a manifest to Synapse')
     parser_sync.add_argument('--dryRun', action='store_true', default=False,
                              help='Perform validation without uploading.')
@@ -32,6 +30,9 @@ def main():
                              help='A tsv file with file locations and metadata to be pushed to Synapse.')
 
     args = parser_sync.parse_args()
+
+    syn = synapseclient.login()
+
     sync(args, syn)
 
 if __name__ == "__main__":
