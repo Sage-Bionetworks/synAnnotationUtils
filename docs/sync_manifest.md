@@ -20,6 +20,7 @@
    ```
 
 2. Add annotation keys
+
    If you would like to add a set of annotation keys to the files, you can run
    ```
    $ python sync_manifest.py -d home_dir_of_files/ --id syn1234567 -f project_annotations.json > your_manifest_file.tsv
@@ -32,6 +33,7 @@
    ```
 
 3. Flatten folder hierarchy
+
    If you know your folder structure very well and would like to flatten the hierarchy, you can add another parameter '-n'.
    ```
    $ python sync_manifest.py -d home_dir_of_files/ --id syn1234567 -f https://raw.githubusercontent.com/Sage-Bionetworks/synapseAnnotations/master/synapseAnnotations/data/common/minimal_Sage_standard.json -n 2 > your_manifest_file.tsv
