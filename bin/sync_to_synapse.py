@@ -5,8 +5,6 @@ The Synapse client release 1.7.3 will replace this script.
 
 '''
 
-import argparse
-
 import synapseclient
 import synapseutils
 
@@ -20,6 +18,8 @@ def sync(args, syn):
                                retries=args.retries)
 
 def main():
+    import argparse
+
     syn = synapseclient.login()
 
     parser_sync = argparse.ArgumentParser(description='Synchronize files described in a manifest to Synapse')
