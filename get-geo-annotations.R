@@ -9,11 +9,7 @@ suppressPackageStartupMessages(library("optparse"))
 option_list <- list(
                     make_option(c("--gse"), action="store",
                                 default=NULL,
-                                help="GEO Series accession number (e.g., \"GSE89777\")"),
-                    make_option(c("--output-file"), action="store",
-                                default="metadata.tsv",
-                                help="Output TSV file to which metadata will be stored")
-    )
+                                help="GEO Series accession number (e.g., \"GSE89777\")"))
 
 descr <- "\
 Extract GEO annotations from the GEO data set with identifier specified by 'GSE'.  If the data set has SRA entries, the ftp directory is expected to be specified in GEO annotation fields that include the pattern 'supplementary_file'.  This field will be parsed to extract the SRA identifier, which will be used to determine the URL of the FTP file.  Whether an SRA data set or not, the URL will be included in the 'url' column of the output.
@@ -24,14 +20,18 @@ parser <- OptionParser(usage = "%prog [options]", option_list=option_list, descr
 arguments <- parse_args(parser, positional_arguments = TRUE)
 opt <- arguments$options
 
+## Collect input parameters
+gse.identifier <- opt$gse
+
 if ( length(arguments$args) != 0 ) {
   print_help(parser)
   q(status=1)
 }
 
-## Collect input parameters
-gse.identifier <- opt$gse
-output.file <- opt$`output-file`
+if ( is.null(gse.identifier) ) {
+  print_help(parser)
+  q(status=1)
+}
 
 ## Log in to synapse
 synapseLogin()
@@ -39,14 +39,14 @@ synapseLogin()
 options('download.file.method.GEOquery' = 'libcurl')
 
 ## Get the GSE object
-cat(paste0("Retrieving the GSE object for identifier: ", gse.identifier, "\n"))
+message(paste0("Retrieving the GSE object for identifier: ", gse.identifier, "\n"))
 gse.geo <- getGEO(gse.identifier, getGPL=FALSE)
 
 ## Iterate over each of the GSMs associated with this GSE
 metadata.tbl <- ldply(sampleNames(phenoData(gse.geo[[1]])), 
                       .fun = function(gsm.identifier) {
 
-                        cat(paste0("Retrieving metadata for GSM identifier: ", gsm.identifier, "\n"))
+                        message(paste0("Retrieving metadata for GSM identifier: ", gsm.identifier, "\n"))
                           
                         ## Get the GSM object
                         gsm.geo <- getGEO(gsm.identifier)
@@ -93,7 +93,7 @@ if(any(metadata.tbl$type == "SRA")) {
   d <- dbDisconnect(con)
 }
 
-write.table(file=output.file, metadata.tbl, sep="\t", quote=FALSE, row.names=FALSE, col.names=TRUE)
+write.table(metadata.tbl, sep="\t", quote=FALSE, row.names=FALSE, col.names=TRUE)
 
-cat("Successfully completed\n")
+message("Successfully completed\n")
 q(status = 0)
