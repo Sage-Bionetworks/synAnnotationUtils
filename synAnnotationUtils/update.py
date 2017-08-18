@@ -223,7 +223,7 @@ def updateFormatTypeByFileName(syn, synId, annoKey, annoDict, forceVersion=False
                     _helperUpdateFormatTypeByFileName(syn, synEntity, annoKey, annoDict, forceVersion)
 
 
-def makeIndex(df):
+def _makeIndex(df):
     """
     Synapse entity-view rows unique-id or index is defined based on three values: ROW_ID, ROW_VERSION, and etag.
     This function concatenates ROW_ID, ROW_VERSION, and etag column values by '_' and assigns it as the data frame
@@ -233,12 +233,12 @@ def makeIndex(df):
     :return:    A data frame containing synapse minimal schema with row index defined as ROW_ID, ROW_VERSION,
                 and etag column values concatenated by '_'.
     """
-    unique_id = pandas.Series(['ROW_ID', 'ROW_VERSION', 'etag'])
+    unique_id = pandas.Series(['ROW_ID', 'ROW_VERSION'])
 
     if not unique_id.isin(df.columns).all():
         logging.info('To update a file view the columns ROW_ID, ROW_VERSION, and etag must exist.')
     else:
-        index = df.apply(lambda x: '%s_%s_%s' % (x['ROW_ID'], x['ROW_VERSION'], x['etag']), axis=1)
+        index = df.apply(lambda x: '%s_%s' % (x['ROW_ID'], x['ROW_VERSION']), axis=1)
         df.insert(0, 'index', index)
         df.set_index(index, inplace=True, drop=True)
         df.drop(['index'], axis=1, inplace=True)
@@ -259,7 +259,7 @@ def _csv2df(path):
 
     df = pandas.read_csv(path).dropna(how='all')
     df = df.dropna(axis=1, how='all')
-    df = makeIndex(df)
+    df = _makeIndex(df)
 
     return df
 
@@ -301,12 +301,12 @@ def query2df(syn, view_id, clause):
 
     f = csv.DictReader(file(view.filepath))
     df = pandas.DataFrame(list(f))
-    df = makeIndex(df)
+    df = _makeIndex(df)
 
     return df
 
 
-def dropSynapseIndices(df):
+def _dropSynapseIndices(df):
     """
     Removes synapse schema class 'ROW_VERSION' and 'ROW_ID' columns.
 
@@ -316,25 +316,6 @@ def dropSynapseIndices(df):
     if {'ROW_VERSION', 'ROW_ID'}.issubset(df.columns):
         df.drop(['ROW_VERSION', 'ROW_ID'], axis=1, inplace=True)
     return df
-
-
-def dropMinimal(syn, df):
-    """
-    Drops Synapse's standard minimal columns except from etag and returns the reduced Data frame.
-
-    :param syn:  A Synapse object: syn = synapseclient.login(username, password) - Must be logged into synapse
-    :param df:   A data frame containing synapse minimal schema
-    :return:     data frame with-out the minimal synapse schema + 'ROW_ID', 'ROW_VERSION' columns
-    """
-
-    minimal_view_schema_column_names = [x['name'] for x in syn.restGET("/column/tableview/defaults/file")['list']]
-
-    # keep the etag in columns
-    minimal_view_schema_column_names.remove('etag')
-
-    df_reduced = df.drop(df.ix[:, minimal_view_schema_column_names + ['ROW_ID', 'ROW_VERSION']].head(0).columns, axis=1)
-
-    return df_reduced
 
 
 def _checkSave(syn, new_view, current_view, schema_id):
@@ -351,8 +332,8 @@ def _checkSave(syn, new_view, current_view, schema_id):
                           caused the schema mismatch if no errors occurs.
     """
 
-    new_view = dropMinimal(syn, new_view)
-    current_view = dropMinimal(syn, current_view)
+    new_view = _dropSynapseIndices(new_view)
+
     matching_columns = new_view.columns.isin(current_view.columns)
     schema_unmatch = list(new_view.columns[~matching_columns])
 
@@ -361,19 +342,23 @@ def _checkSave(syn, new_view, current_view, schema_id):
         view = syn.store(synapseclient.Table(schema_id, new_view))
     else:
         schema_unmatch_names = ''.join(map(str, schema_unmatch))
-        logging.info(''.join(["Updated data frame and entity-view's ", schema_id, " schema names ",
-                     schema_unmatch_names, " don't match."]))
+        logging.info(
+            "Updated data frame and entity-view's %s schema names %s don't match." % (schema_id, schema_unmatch_names))
 
 
 def updateEntityView(syn, syn_id, path, clause=None):
     """
-    Update Entity-View annotations by giving a user-defined manifest csv path with the same schema as the Entity-View
+    Updates Entity-View annotations by giving a user-defined csv path with the same schema as the Entity-View.
+
+    required columns in csv file: ROW_ID, ROW_VERSION, etag
+    limitations: This function does not track possible different states (i.e. changes from other users) of an
+    entity-view between the time an entity-view has been downloaded and modified until the time it will be uploaded.
 
     :param syn:       A Synapse object: syn = synapseclient.login(username, password) - Must be logged into synapse
     :param syn_id:    A Synapse ID of an entity-view (Note: Edit permission on its' files is required)
     :param path:      Current working directory absolute/relative path to user-defined manifest .csv file containing
                       updated cells with the same schema as existing entity-view
-                      df.apply(lambda x: '%s_%s_%s' % (x['ROW_ID'], x['ROW_VERSION'], x['etag']), axis=1)
+                      df.apply(lambda x: '%s_%s' % (x['ROW_ID'], x['ROW_VERSION']), axis=1)
     :param clause:    A SQL clause to allow for sub-setting & row filtering in order to reduce the data-size on
                       download
 
@@ -395,71 +380,4 @@ def updateEntityView(syn, syn_id, path, clause=None):
 
         _checkSave(syn=syn, new_view=view_df, current_view=current_view, schema_id=syn_id)
 
-
-def expandFields(syn, project_id, view_id, scopes, view_name, path, view_type='file', clause=None,
-                 delta=False):
-    """
-    Based on an existing entity-view, create a new entity-view with additional fields and/or columns.
-    user may choose to keep or discard the initial entity-view since this function would duplicate an entity-view.
-    Both existing and new columns must be present and not empty in user's csv file.
-
-    :param syn:          A Synapse object: syn = synapseclient.login(username, password) - Must be logged into synapse
-    :param project_id:   A Synapse ID of a project (Note: Edit permission is required)
-    :param view_id:      A Synapse ID of an entity-view (Note: Edit permission on its' files is required)
-    :param scopes:       A list of Projects/Folders or their ids
-    :param view_name:    The name of your entity-view
-    :param path:         Current working directory absolute/relative path to user-defined manifest .csv file containing
-                         updated fields and cells based on and in addition to an existing entity-view schema.
-    :param view_type:    The type of entity-view to display: either 'file' or 'project'. Defaults to 'file'
-    :param clause:       A SQL clause to allow for sub-setting & row filtering in order to reduce the data-size on
-                         download
-    :param delta:        Boolean indicating whether to delete the entity-view with the original schema. Default is False
-
-    Example:
-
-        expandFields(syn, 'syn1234', 'syn3333', ['syn1255', 'syn1266'], 'my projects entityview',
-                    'myproject_annotation_updates.csv', viewType='file', clause=None, delta=True)
-    """
-
-    user_df = _csv2df(path)
-    user_df = dropSynapseIndices(user_df)
-
-    cols = pandas.DataFrame(list(syn.getColumns(view_id)))
-
-    # Find the new fields/columns that are not in current entity-view
-    new_cols = list(user_df.columns[~user_df.columns.isin(list(cols.name))].dropna())
-
-    # get the added column types from data frame
-    col_types = pandas.DataFrame(user_df[new_cols].dtypes)
-    col_types = col_types.replace(['object', 'int64', 'float64'], ['STRING', 'INTEGER', 'FLOAT'])
-
-    # Create synapse column objects for each new column
-    added_cols = [syn.store(synapseclient.Column(name=k, columnType=col_types.loc[k, 0])) for k in new_cols]
-    added_cols_ids = [c['id'] for c in added_cols]
-
-    # get current schema's columns (non-minimal, etag, and concreteType)
-    minimal_view_schema_column_names = [x['name'] for x in syn.restGET("/column/tableview/defaults/file")['list']]
-    current_cols = list(cols.id[~cols.name.isin(minimal_view_schema_column_names + ['etag', 'concreteType'])])
-
-    # combine new and current columns to construct the new schema
-    new_schema_cols = added_cols_ids + current_cols
-    logging.info("Creating a new entity-view schema based on %s." % view_id)
-
-    # construct a new synapse entity-view schema
-    schema = syn.store(synapseclient.EntityViewSchema(name=view_name, columns=new_schema_cols, parent=project_id,
-                                                      scopes=scopes, view_type=view_type))
-
-    # get the new entity-view and update the empty cells
-    current_view = query2df(syn=syn, view_id=schema.id, clause=clause)
-    view_df = current_view
-
-    view_df.update(user_df)
-
-    _checkSave(syn=syn, new_view=view_df, current_view=current_view, schema_id=schema.id)
-
-    # if delta is true, then delete the previous/original entity-view
-    if delta:
-        logging.info(''.join(['Deleting previous entity-view: ', view_id]))
-        previous_view = syn.get(view_id)
-        syn.delete(previous_view)
 

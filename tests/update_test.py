@@ -8,11 +8,11 @@ from nose.tools import assert_equals
 
 def test_update_entityview():
     """
+    Applies simple modifications to annotations of entity-view syn10168977 located at
     Annotations test project on synapse: https://www.synapse.org/#!Synapse:syn10163670
+    and reverts back the changes applied.
 
     :return: None or Error
-
-        Example: nosetests -vs tests/update_test.py:test_update_entityview
     """
     syn = synapseclient.login()
 
@@ -45,37 +45,3 @@ def test_update_entityview():
 
     # delete created file
     os.remove("changed_view_test.csv")
-
-
-def test_copy_and_update_entityview():
-    """
-    Annotations test project on synapse: https://www.synapse.org/#!Synapse:syn10163670
-
-    :return: None or Error
-
-         Example: nosetests -vs tests/update_test.py:test_copy_and_update_entityview
-    """
-    syn = synapseclient.login()
-
-    parent_id = 'syn10163670'
-    view_id = 'syn10168977'
-    scope_list = ['syn10163672']
-    file_name = 'changed_view_test.csv'
-    new_name = 'adding columns test july 21 2017 - v2'
-
-    view_df = synAnnotationUtils.update.query2df(syn, view_id, clause=None)
-
-    # add a non-empty column to the entity-view data frame and save it as a csv file
-    col_df = pandas.DataFrame({'labResult': ['pos', 'neg', 'neg', 'neg']})
-    col_df.set_index(view_df.index, inplace=True)
-
-    view_df = view_df.join(col_df)
-    view_df.to_csv(file_name, index=False)
-
-    # copy another entity-view based on view_id and expand columns to it
-    synAnnotationUtils.update.expandFields(syn, parent_id, view_id, scope_list, new_name, file_name,
-                                           view_type='file', clause=None, delta=False)
-
-    # delete created file
-    os.remove("changed_view_test.csv")
-
