@@ -370,11 +370,9 @@ def updateEntityView(syn, syn_id, path, clause=None):
                              'where assay = 'geneExpression')
     """
     if isinstance(path, six.string_types) and '.csv' in path:
-
         user_df = _csv2df(path)
 
     else:
-
         logging.error("The provided path: %s is not a string or a .csv file path" % path)
 
     current_view = query2df(syn, syn_id, clause)
