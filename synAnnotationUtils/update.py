@@ -1,4 +1,5 @@
 import re
+import six
 import csv
 import pandas
 import logging
@@ -357,7 +358,7 @@ def updateEntityView(syn, syn_id, path, clause=None):
     :param syn:       A Synapse object: syn = synapseclient.login(username, password) - Must be logged into synapse
     :param syn_id:    A Synapse ID of an entity-view (Note: Edit permission on its' files is required)
     :param path:      Current working directory absolute/relative path to user-defined manifest .csv file containing
-                      updated cells with the same schema as existing entity-view
+                      updated cells with the same schema as the existing entity-view.
                       df.apply(lambda x: '%s_%s' % (x['ROW_ID'], x['ROW_VERSION']), axis=1)
     :param clause:    A SQL clause to allow for sub-setting & row filtering in order to reduce the data-size on
                       download
@@ -368,8 +369,14 @@ def updateEntityView(syn, syn_id, path, clause=None):
              updateEntityView(syn, 'syn12345', 'myproject_annotation_updates.csv',
                              'where assay = 'geneExpression')
     """
+    if isinstance(path, six.string_types) and '.csv' in path:
 
-    user_df = _csv2df(path)
+        user_df = _csv2df(path)
+
+    else:
+
+        logging.error("The provided path: %s is not a string or a .csv file path" % path)
+
     current_view = query2df(syn, syn_id, clause)
 
     if user_df.empty:
