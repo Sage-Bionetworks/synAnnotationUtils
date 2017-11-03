@@ -1,10 +1,16 @@
 #!/usr/bin/env Rscript
 
-suppressPackageStartupMessages(library("synapseClient"))
-suppressPackageStartupMessages(library("GEOquery"))
-suppressPackageStartupMessages(library("SRAdb"))
-suppressPackageStartupMessages(library("plyr"))
-suppressPackageStartupMessages(library("optparse"))
+usePackage <- function(p) 
+{
+  if (!is.element(p, installed.packages()[,1]))
+    install.packages(p, dep = TRUE)
+  require(p, character.only = TRUE)
+}
+
+suppressPackageStartupMessages(usePackage("GEOquery"))
+suppressPackageStartupMessages(usePackage("SRAdb"))
+suppressPackageStartupMessages(usePackage("plyr"))
+suppressPackageStartupMessages(usePackage("optparse"))
 
 option_list <- list(
                     make_option(c("--gse"), action="store",
@@ -32,9 +38,6 @@ if ( is.null(gse.identifier) ) {
   print_help(parser)
   q(status=1)
 }
-
-## Log in to synapse
-synapseLogin()
 
 options('download.file.method.GEOquery' = 'libcurl')
 
