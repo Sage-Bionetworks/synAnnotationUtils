@@ -52,7 +52,6 @@ def updateAnnoByDict(syn, synId, annoDict, forceVersion=False):
                     _helperUpdateAnnoByDict(syn, synEntity, annoDict, forceVersion)
 
 
-
 ## by idDict
 def updateAnnoByIdDictFromDict(syn, idDict, annoDict, forceVersion=False):
     """
@@ -369,7 +368,7 @@ def updateEntityView(syn, syn_id, path, clause=None):
              updateEntityView(syn, 'syn12345', 'myproject_annotation_updates.csv',
                              'where assay = 'geneExpression')
     """
-    if not isinstance(path, six.string_types) and not '.csv' in path:
+    if not isinstance(path, six.string_types) and not ".csv" in path:
         logging.error("The provided path: %s is not a string or a .csv file path" % path)
 
     else:
