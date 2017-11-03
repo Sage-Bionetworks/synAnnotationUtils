@@ -369,20 +369,18 @@ def updateEntityView(syn, syn_id, path, clause=None):
              updateEntityView(syn, 'syn12345', 'myproject_annotation_updates.csv',
                              'where assay = 'geneExpression')
     """
-    if isinstance(path, six.string_types) and '.csv' in path:
-        user_df = _csv2df(path)
-
-    else:
+    if not isinstance(path, six.string_types) and not '.csv' in path:
         logging.error("The provided path: %s is not a string or a .csv file path" % path)
 
-    current_view = query2df(syn, syn_id, clause)
-
-    if user_df.empty:
-        logging.info("Uploaded data frame is empty with nothing to update!")
     else:
-        view_df = current_view
-        view_df.update(user_df)
+        user_df = _csv2df(path)
+        current_view = query2df(syn, syn_id, clause)
 
-        _checkSave(syn=syn, new_view=view_df, current_view=current_view, schema_id=syn_id)
+        if user_df.empty:
+            logging.info("Uploaded data frame is empty with nothing to update!")
 
+        else:
+            view_df = current_view
+            view_df.update(user_df)
 
+            _checkSave(syn=syn, new_view=view_df, current_view=current_view, schema_id=syn_id)
