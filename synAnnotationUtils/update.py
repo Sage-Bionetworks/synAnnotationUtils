@@ -248,8 +248,7 @@ def _makeIndex(df):
 
 def _csv2df(path):
     """
-    Reads users .csv file containing updated annotations and converts it into a pandas data frame
-    while removing rows and columns with all NA values.
+    Reads users .csv file containing updated annotations and converts it into a pandas data frame.
 
     :param path:      Current working directory absolute/relative path to user-defined manifest .csv file containing
                       updated cells with the same schema as existing entity-view
@@ -257,8 +256,7 @@ def _csv2df(path):
                       synapse file-ids by standard minimal synapse columns + annotation's schema
     """
 
-    df = pandas.read_csv(path).dropna(how='all')
-    df = df.dropna(axis=1, how='all')
+    df = pandas.read_csv(path)
     df = _makeIndex(df)
 
     return df
@@ -368,18 +366,14 @@ def updateEntityView(syn, syn_id, path, clause=None):
              updateEntityView(syn, 'syn12345', 'myproject_annotation_updates.csv',
                               where assay = 'geneExpression')
     """
-    if not isinstance(path, six.string_types) and not ".csv" in path:
-        raise ValueError("The provided path: %s is not a string or a .csv file path" % path)
+    user_df = _csv2df(path)
+    current_view = query2df(syn, syn_id, clause)
+
+    if user_df.empty:
+        logging.info("Uploaded data frame is empty with nothing to update!")
 
     else:
-        user_df = _csv2df(path)
-        current_view = query2df(syn, syn_id, clause)
+        view_df = current_view
+        view_df.update(user_df)
 
-        if user_df.empty:
-            logging.info("Uploaded data frame is empty with nothing to update!")
-
-        else:
-            view_df = current_view
-            view_df.update(user_df)
-
-            _checkSave(syn=syn, new_view=view_df, current_view=current_view, schema_id=syn_id)
+        _checkSave(syn=syn, new_view=view_df, current_view=current_view, schema_id=syn_id)
