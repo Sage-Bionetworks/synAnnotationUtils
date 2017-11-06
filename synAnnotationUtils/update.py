@@ -366,7 +366,7 @@ def updateEntityView(syn, syn_id, path, clause=None):
 
              updateEntityView(syn, 'syn12345', 'myproject_annotation_updates.csv')
              updateEntityView(syn, 'syn12345', 'myproject_annotation_updates.csv',
-                             'where assay = 'geneExpression')
+                              where assay = 'geneExpression')
     """
     if not isinstance(path, six.string_types) and not ".csv" in path:
         raise ValueError("The provided path: %s is not a string or a .csv file path" % path)
