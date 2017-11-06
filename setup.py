@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='synAnnotationUtils',
-      version='0.2',
+      version='0.3',
       description='Annotation management for Synapse.',
       long_description=open('README.md').read(),
       url='https://github.com/Sage-Bionetworks/synAnnotationUtils',
