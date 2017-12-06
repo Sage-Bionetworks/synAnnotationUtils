@@ -1,19 +1,17 @@
 #!/usr/bin/env python
 
-'''
-Create empty file view from a json of interest
+"""
+Create empty file view from a Synapse annotations json file.
 
-'''
+"""
 
 import os
 import sys
 import json
 import urlparse
 import urllib
-import pandas as pd
 
 import synapseclient
-import synapseutils
 
 
 def path2url(path):
@@ -27,12 +25,6 @@ def path2url(path):
 
     return new_path
 
-def makeFileView(view_name,project_id,scopes,cols):
-
-    entity_view = synapseclient.EntityViewSchema(name=view_name, parent=project_id,
-    scopes=scopes,columns=cols)
-
-    return entity_view
 
 def getSchemaFromJson(json_file):
     print json_file
@@ -41,12 +33,11 @@ def getSchemaFromJson(json_file):
 
     cols = []
 
-
     for d in data:
-        k=d['name']
-        column_type=d['columnType']
-        enumValues=[a['value'] for a in d['enumValues']]
-        ms=d['maximumSize']
+        k = d['name']
+        column_type = d['columnType']
+        enumValues = [a['value'] for a in d['enumValues']]
+        ms = d['maximumSize']
         cols.append(synapseclient.Column(name=k, columnType=column_type,
                                          enumValues=enumValues, maximumSize=ms))
 
@@ -63,8 +54,8 @@ def main():
     parser.add_argument('--name', help='Name of file view')
     parser.add_argument('-s', '--scopes',
                         help='comma-delimited list of Synapse IDs of scope that file view should span')
-    parser.add_argument('json', nargs='+', help='One or more json files to be used to\
-    generate the file view')
+    parser.add_argument('json', nargs='+',
+                        help='One or more json files to be used to generate the file view')
 
     args = parser.parse_args()
 
@@ -74,13 +65,16 @@ def main():
     jsons = args.json
     view_name = args.name
 
-    #get schema from json
+    # get schema from json
     cols = []
     [cols.extend(getSchemaFromJson(j)) for j in jsons]
 #    print len(cols)
-    fv = makeFileView(view_name,project_id,scopes.split(','),cols)
+    scopes = scopes.split(',')
+    fv = synapseclient.EntityViewSchema(name=view_name, parent=project_id,
+                                        scopes=scopes, columns=cols)
 
     syn.store(fv)
+
 
 if __name__ == '__main__':
     main()
