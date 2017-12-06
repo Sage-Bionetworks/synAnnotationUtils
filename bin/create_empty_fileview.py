@@ -38,6 +38,8 @@ def getSchemaFromJson(json_file):
         column_type = d['columnType']
         enumValues = [a['value'] for a in d['enumValues']]
         ms = d['maximumSize']
+        if ms=="":
+            ms='250'
         cols.append(synapseclient.Column(name=k, columnType=column_type,
                                          enumValues=enumValues, maximumSize=ms))
 
@@ -70,7 +72,7 @@ def main():
     [cols.extend(getSchemaFromJson(j)) for j in jsons]
 #    print len(cols)
     scopes = scopes.split(',')
-    fv = synapseclient.EntityViewSchema(name=view_name, parent=project_id,
+    fv = synapseclient.EntityViewSchema(name=view_name, parent=project_id,#,add_default_columns=False,
                                         scopes=scopes, columns=cols)
 
     syn.store(fv)
