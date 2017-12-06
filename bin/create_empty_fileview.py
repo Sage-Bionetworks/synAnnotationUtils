@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
-'''
-Create empty file view from a json of interest
+"""
+Create empty file view from a Synapse annotations json file.
 
-'''
+"""
 
 import os
 import sys
@@ -24,14 +24,6 @@ def path2url(path):
         new_path = path
 
     return new_path
-
-
-def makeFileView(view_name, project_id, scopes, cols):
-
-    entity_view = synapseclient.EntityViewSchema(name=view_name, parent=project_id,
-                                                 scopes=scopes, columns=cols)
-
-    return entity_view
 
 
 def getSchemaFromJson(json_file):
@@ -62,8 +54,8 @@ def main():
     parser.add_argument('--name', help='Name of file view')
     parser.add_argument('-s', '--scopes',
                         help='comma-delimited list of Synapse IDs of scope that file view should span')
-    parser.add_argument('json', nargs='+', help='One or more json files to be used to\
-    generate the file view')
+    parser.add_argument('json', nargs='+',
+                        help='One or more json files to be used to generate the file view')
 
     args = parser.parse_args()
 
@@ -77,7 +69,9 @@ def main():
     cols = []
     [cols.extend(getSchemaFromJson(j)) for j in jsons]
 #    print len(cols)
-    fv = makeFileView(view_name, project_id, scopes.split(','), cols)
+    scopes = scopes.split(',')
+    fv = synapseclient.EntityViewSchema(name=view_name, parent=project_id,
+                                        scopes=scopes, columns=cols)
 
     syn.store(fv)
 
