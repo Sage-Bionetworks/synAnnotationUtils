@@ -13,6 +13,7 @@ import urllib
 
 import synapseclient
 
+
 def path2url(path):
     """Convert path to URL, even if it already is a URL.
     """
@@ -24,12 +25,14 @@ def path2url(path):
 
     return new_path
 
-def makeFileView(view_name,project_id,scopes,cols):
+
+def makeFileView(view_name, project_id, scopes, cols):
 
     entity_view = synapseclient.EntityViewSchema(name=view_name, parent=project_id,
-    scopes=scopes,columns=cols)
+                                                 scopes=scopes, columns=cols)
 
     return entity_view
+
 
 def getSchemaFromJson(json_file):
     print json_file
@@ -38,12 +41,11 @@ def getSchemaFromJson(json_file):
 
     cols = []
 
-
     for d in data:
-        k=d['name']
-        column_type=d['columnType']
-        enumValues=[a['value'] for a in d['enumValues']]
-        ms=d['maximumSize']
+        k = d['name']
+        column_type = d['columnType']
+        enumValues = [a['value'] for a in d['enumValues']]
+        ms = d['maximumSize']
         cols.append(synapseclient.Column(name=k, columnType=column_type,
                                          enumValues=enumValues, maximumSize=ms))
 
@@ -72,13 +74,13 @@ def main():
     view_name = args.name
 
     # get schema from json
-
     cols = []
     [cols.extend(getSchemaFromJson(j)) for j in jsons]
 #    print len(cols)
-    fv = makeFileView(view_name,project_id,scopes.split(','),cols)
+    fv = makeFileView(view_name, project_id, scopes.split(','), cols)
 
     syn.store(fv)
+
 
 if __name__ == '__main__':
     main()
