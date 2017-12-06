@@ -10,11 +10,8 @@ import sys
 import json
 import urlparse
 import urllib
-import pandas as pd
 
 import synapseclient
-import synapseutils
-
 
 def path2url(path):
     """Convert path to URL, even if it already is a URL.
@@ -74,7 +71,8 @@ def main():
     jsons = args.json
     view_name = args.name
 
-    #get schema from json
+    # get schema from json
+
     cols = []
     [cols.extend(getSchemaFromJson(j)) for j in jsons]
 #    print len(cols)
