@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
-"""
-Create empty file view from a Synapse annotations json file.
+"""Create empty file view from a Synapse annotations json file.
 
 """
 
@@ -16,6 +15,7 @@ import synapseclient
 
 def path2url(path):
     """Convert path to URL, even if it already is a URL.
+
     """
 
     if path.startswith("/"):
@@ -27,7 +27,15 @@ def path2url(path):
     return new_path
 
 
-def getSchemaFromJson(json_file, defaultMaximumSize=250):
+def createColumnsFromJson(json_file, defaultMaximumSize=250):
+    """Create a list of Synapse Table Columns from a Synapse annotations JSON file.
+
+    This creates a list of columns; if the column is a 'STRING' and
+    defaultMaximumSize is specified, change the default maximum size for that
+    column.
+
+    """
+
     f = urllib.urlopen(path2url(json_file))
     data = json.load(f)
 
@@ -36,7 +44,7 @@ def getSchemaFromJson(json_file, defaultMaximumSize=250):
     for d in data:
         d['enumValues'] = [a['value'] for a in d['enumValues']]
 
-        if d['columnType'] == 'STRING' and not d['maximumSize']:
+        if d['columnType'] == 'STRING' and defaultMaximumSize:
             d['maximumSize'] = defaultMaximumSize
 
         cols.append(synapseclient.Column(**d))
@@ -74,7 +82,7 @@ def main():
 
     # get schema from json
     cols = []
-    [cols.extend(getSchemaFromJson(j)) for j in jsons]
+    [cols.extend(createColumnsFromJson(j)) for j in jsons]
 
     scopes = scopes.split(',')
     fv = synapseclient.EntityViewSchema(name=view_name, parent=project_id,
