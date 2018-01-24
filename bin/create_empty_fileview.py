@@ -49,12 +49,14 @@ def main():
 
     parser = argparse.ArgumentParser(description="Create Empty File View")
     parser.add_argument('--id', help='Synapse ID of project in which to create\
-    file view')
+                                      file view')
     parser.add_argument('--name', help='Name of file view')
     parser.add_argument('-s', '--scopes',
-                        help='A comma-delimited list of Synapse IDs of scopes that file view should include.')
+                        help='A comma-delimited list of Synapse IDs of scopes\
+                              that the file view should include.')
     parser.add_argument('json', nargs='+',
-                        help='One or more json files to use to define the file view Schema.')
+                        help='One or more json files to use to define the file\
+                              view Schema.')
     parser.add_argument('-v', '--verbose', action='store_true',
                         help='Verbose output.')
 
