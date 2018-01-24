@@ -27,7 +27,7 @@ def path2url(path):
     return new_path
 
 
-def getSchemaFromJson(json_file):
+def getSchemaFromJson(json_file, defaultMaximumSize=250):
     print json_file
     f = urllib.urlopen(path2url(json_file))
     data = json.load(f)
@@ -35,15 +35,12 @@ def getSchemaFromJson(json_file):
     cols = []
 
     for d in data:
-        k = d['name']
-        column_type = d['columnType']
-        enumValues = [a['value'] for a in d['enumValues']]
-        ms = d['maximumSize']
-        if ms == "":
-            ms = '250'
-        cols.append(synapseclient.Column(name=k, columnType=column_type,
-                                         enumValues=enumValues,
-                                         maximumSize=ms))
+        d['enumValues'] = [a['value'] for a in d['enumValues']]
+
+        if d['columnType'] == 'STRING' and not d['maximumSize']:
+            d['maximumSize'] = defaultMaximumSize
+
+        cols.append(synapseclient.Column(**d))
 
     return cols
 
