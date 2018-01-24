@@ -58,15 +58,17 @@ def main():
     parser = argparse.ArgumentParser(description="Create Empty File View")
     parser.add_argument('--id', help='Synapse ID of project in which to create\
                                       file view')
-    parser.add_argument('--name', help='Name of file view')
+    parser.add_argument('-n', '--name', help='Name of file view')
     parser.add_argument('-s', '--scopes',
                         help='A comma-delimited list of Synapse IDs of scopes\
                               that the file view should include.')
+    parser.add_argument('--add_default_columns', action='store_true',
+                        help='Add default columns to file view.')
+    parser.add_argument('-v', '--verbose', action='store_true',
+                        help='Verbose output.')
     parser.add_argument('json', nargs='+',
                         help='One or more json files to use to define the file\
                               view Schema.')
-    parser.add_argument('-v', '--verbose', action='store_true',
-                        help='Verbose output.')
 
     args = parser.parse_args()
 
@@ -86,7 +88,8 @@ def main():
 
     scopes = scopes.split(',')
     fv = synapseclient.EntityViewSchema(name=view_name, parent=project_id,
-                                        scopes=scopes, columns=cols)
+                                        scopes=scopes, columns=cols,
+                                        add_default_columns=args.add_default_columns)
 
     syn.store(fv)
 
