@@ -28,7 +28,6 @@ def path2url(path):
 
 
 def getSchemaFromJson(json_file, defaultMaximumSize=250):
-    print json_file
     f = urllib.urlopen(path2url(json_file))
     data = json.load(f)
 
