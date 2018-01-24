@@ -19,7 +19,8 @@ def path2url(path):
     """
 
     if path.startswith("/"):
-        new_path = urlparse.urljoin('file:', urllib.pathname2url(os.path.abspath(path)))
+        new_path = urlparse.urljoin('file:',
+                                    urllib.pathname2url(os.path.abspath(path)))
     else:
         new_path = path
 
@@ -38,10 +39,11 @@ def getSchemaFromJson(json_file):
         column_type = d['columnType']
         enumValues = [a['value'] for a in d['enumValues']]
         ms = d['maximumSize']
-        if ms=="":
-            ms='250'
+        if ms == "":
+            ms = '250'
         cols.append(synapseclient.Column(name=k, columnType=column_type,
-                                         enumValues=enumValues, maximumSize=ms))
+                                         enumValues=enumValues,
+                                         maximumSize=ms))
 
     return cols
 
@@ -55,9 +57,9 @@ def main():
     file view')
     parser.add_argument('--name', help='Name of file view')
     parser.add_argument('-s', '--scopes',
-                        help='comma-delimited list of Synapse IDs of scope that file view should span')
+                        help='A comma-delimited list of Synapse IDs of scopes that file view should include.')
     parser.add_argument('json', nargs='+',
-                        help='One or more json files to be used to generate the file view')
+                        help='One or more json files to use to define the file view Schema.')
 
     args = parser.parse_args()
 
@@ -70,9 +72,9 @@ def main():
     # get schema from json
     cols = []
     [cols.extend(getSchemaFromJson(j)) for j in jsons]
-#    print len(cols)
+
     scopes = scopes.split(',')
-    fv = synapseclient.EntityViewSchema(name=view_name, parent=project_id,#,add_default_columns=False,
+    fv = synapseclient.EntityViewSchema(name=view_name, parent=project_id,
                                         scopes=scopes, columns=cols)
 
     syn.store(fv)
