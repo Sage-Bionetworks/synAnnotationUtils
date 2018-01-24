@@ -64,8 +64,6 @@ def main():
                               that the file view should include.')
     parser.add_argument('--add_default_columns', action='store_true',
                         help='Add default columns to file view.')
-    parser.add_argument('-v', '--verbose', action='store_true',
-                        help='Verbose output.')
     parser.add_argument('json', nargs='+',
                         help='One or more json files to use to define the file\
                               view Schema.')
@@ -73,9 +71,6 @@ def main():
     args = parser.parse_args()
 
     syn = synapseclient.login(silent=True)
-
-    if args.verbose:
-        sys.stderr.write('Preparing to create fileview\n')
 
     project_id = args.id
     scopes = args.scopes
