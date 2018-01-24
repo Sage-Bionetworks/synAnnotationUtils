@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
-"""
-Create empty file view from a Synapse annotations json file.
+"""Create empty file view from a Synapse annotations json file.
 
 """
 
@@ -16,6 +15,7 @@ import synapseclient
 
 def path2url(path):
     """Convert path to URL, even if it already is a URL.
+
     """
 
     if path.startswith("/"):
@@ -27,43 +27,54 @@ def path2url(path):
     return new_path
 
 
-def getSchemaFromJson(json_file):
-    print json_file
+def createColumnsFromJson(json_file, defaultMaximumSize=250):
+    """Create a list of Synapse Table Columns from a Synapse annotations JSON file.
+
+    This creates a list of columns; if the column is a 'STRING' and
+    defaultMaximumSize is specified, change the default maximum size for that
+    column.
+
+    """
+
     f = urllib.urlopen(path2url(json_file))
     data = json.load(f)
 
     cols = []
 
     for d in data:
-        k = d['name']
-        column_type = d['columnType']
-        enumValues = [a['value'] for a in d['enumValues']]
-        ms = d['maximumSize']
-        if ms == "":
-            ms = '250'
-        cols.append(synapseclient.Column(name=k, columnType=column_type,
-                                         enumValues=enumValues,
-                                         maximumSize=ms))
+        d['enumValues'] = [a['value'] for a in d['enumValues']]
+
+        if d['columnType'] == 'STRING' and defaultMaximumSize:
+            d['maximumSize'] = defaultMaximumSize
+
+        cols.append(synapseclient.Column(**d))
 
     return cols
 
 
 def main():
     import argparse
-    syn = synapseclient.login(silent=True)
 
     parser = argparse.ArgumentParser(description="Create Empty File View")
     parser.add_argument('--id', help='Synapse ID of project in which to create\
-    file view')
+                                      file view')
     parser.add_argument('--name', help='Name of file view')
     parser.add_argument('-s', '--scopes',
-                        help='A comma-delimited list of Synapse IDs of scopes that file view should include.')
+                        help='A comma-delimited list of Synapse IDs of scopes\
+                              that the file view should include.')
     parser.add_argument('json', nargs='+',
-                        help='One or more json files to use to define the file view Schema.')
+                        help='One or more json files to use to define the file\
+                              view Schema.')
+    parser.add_argument('-v', '--verbose', action='store_true',
+                        help='Verbose output.')
 
     args = parser.parse_args()
 
-    sys.stderr.write('Preparing to create fileview\n')
+    syn = synapseclient.login(silent=True)
+
+    if args.verbose:
+        sys.stderr.write('Preparing to create fileview\n')
+
     project_id = args.id
     scopes = args.scopes
     jsons = args.json
@@ -71,7 +82,7 @@ def main():
 
     # get schema from json
     cols = []
-    [cols.extend(getSchemaFromJson(j)) for j in jsons]
+    [cols.extend(createColumnsFromJson(j)) for j in jsons]
 
     scopes = scopes.split(',')
     fv = synapseclient.EntityViewSchema(name=view_name, parent=project_id,
