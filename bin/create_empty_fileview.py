@@ -46,7 +46,6 @@ def getSchemaFromJson(json_file, defaultMaximumSize=250):
 
 def main():
     import argparse
-    syn = synapseclient.login(silent=True)
 
     parser = argparse.ArgumentParser(description="Create Empty File View")
     parser.add_argument('--id', help='Synapse ID of project in which to create\
@@ -58,6 +57,8 @@ def main():
                         help='One or more json files to use to define the file view Schema.')
 
     args = parser.parse_args()
+
+    syn = synapseclient.login(silent=True)
 
     sys.stderr.write('Preparing to create fileview\n')
     project_id = args.id
