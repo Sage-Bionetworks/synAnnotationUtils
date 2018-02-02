@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 
-'''Create Synapse sync manifest
-
-   In tab delimited format
+'''Create Synapse sync manifest in tab delimited format.
 
 '''
 
