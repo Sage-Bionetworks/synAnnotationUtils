@@ -116,7 +116,7 @@ def main():
 
     parser = argparse.ArgumentParser(description="Create Synapse sync manifest")
     parser.add_argument('-d', '--directory', help='local directory')
-    parser.add_argument('--id', help='Synapse ID of the project/folder')
+    parser.add_argument('--id', help='Synapse ID of the project/folder to use as the root.')
     parser.add_argument('-f', '--files',
                         help='Path(s) to JSON file(s) of annotations (optional)',
                         nargs='+')
