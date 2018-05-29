@@ -120,7 +120,7 @@ def main():
     parser.add_argument('-f', '--files',
                         help='Path(s) to JSON file(s) of annotations (optional)',
                         nargs='+')
-    parser.add_argument('-n', '--n', help='depth of hierarchy (default: %{default})',
+    parser.add_argument('-n', '--n', help='depth of hierarchy (default: %(default)s)',
                         default=None)
 
     args = parser.parse_args()
