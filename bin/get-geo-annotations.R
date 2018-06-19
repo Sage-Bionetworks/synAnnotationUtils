@@ -15,7 +15,10 @@ suppressPackageStartupMessages(usePackage("optparse"))
 option_list <- list(
                     make_option(c("--gse"), action="store",
                                 default=NULL,
-                                help="GEO Series accession number (e.g., \"GSE89777\")"))
+                                help="GEO Series accession number (e.g., \"GSE89777\")"),
+                    make_option(c("--output-file"), action="store",
+                                default="metadata.tsv",
+                                help="File to store the metadata in TSV format [default: %default%"))
 
 descr <- "\
 Extract GEO annotations from the GEO data set with identifier specified by 'GSE'.  If the data set has SRA entries, the ftp directory is expected to be specified in GEO annotation fields that include the pattern 'supplementary_file'.  This field will be parsed to extract the SRA identifier, which will be used to determine the URL of the FTP file.  Whether an SRA data set or not, the URL will be included in the 'url' column of the output.
@@ -28,6 +31,7 @@ opt <- arguments$options
 
 ## Collect input parameters
 gse.identifier <- opt$gse
+output.file <- opt$`output-file`
 
 if ( length(arguments$args) != 0 ) {
   print_help(parser)
@@ -75,28 +79,55 @@ if(length(supp.file.columns) > 1) {
 
 metadata.tbl$url <- as.character(metadata.tbl[, supp.file.columns[1]])
 
+cat("Outputting metadata file before resolving URLs to FTP sites\n")
+write.table(file = output.file, metadata.tbl, sep="\t", quote=FALSE, row.names=FALSE, col.names=TRUE)
+
 if(any(metadata.tbl$type == "SRA")) {
   sra.db.dest.file <- "SRAmetadb.sqlite"
   if(!file.exists(sra.db.dest.file)) {
-    sra.db.dest.file <- getSRAdbFile(destfile = paste0(sra.db.dest.file, ".gz"))
+      url <- "https://starbuck1.s3.amazonaws.com/sradb/SRAmetadb.sqlite.gz"
+      gzip.file <- paste0(sra.db.dest.file, ".gz")
+      download.file(url = url, destfile = gzip.file, mode = "wb", method = "libcurl")
+      system(paste0("gunzip ", gzip.file))
+    ## sra.db.dest.file <- getSRAdbFile(destfile = paste0(sra.db.dest.file, ".gz"))
   }
   con <- dbConnect(RSQLite::SQLite(), sra.db.dest.file)
+
+  if(!("relation" %in% colnames(metadata.tbl))) {
+      stop("Was expecting to parse SRA identifier from relation column, but no such column exists\n")
+  }
   
   for(i in 1:nrow(metadata.tbl)) {
     if(metadata.tbl$type[i] == "SRA") {
-      ## Extract the SRA identifier
-      ## NB: this is probably also in the relation column
-      url <- metadata.tbl$url[i]
-      sra.identifier <- gsub("^.*\\/([^\\/]+)$", "\\1", url)
-      url <- listSRAfile(sra.identifier, con)$ftp
-      metadata.tbl$url[i] <- url
+        ## Extract the SRA identifier
+        ## NB: this is probably also in the relation column
+        ## We once tried to extract this from the URL, but it was too
+        ## simplistic.  
+        ## url <- metadata.tbl$url[i]
+        ## sra.identifier <- gsub("^.*\\/([^\\/]+)$", "\\1", url)
+        ## Instead, extract from the relation field
+        relation.str <- as.character(metadata.tbl$relation[i])
+        relations <- unlist(strsplit(x = relation.str, split=";[ ]*"))
+        flag <- grepl(relations, pattern="SRA")
+        if(!(length(which(flag) == 1))) {
+            stop(paste0("Could not find SRA in relation string: ", relation.str, "\n"))
+        }
+        sra.relation <- relations[flag]
+        if(!grepl(sra.relation, pattern = "term=")) {
+            stop(paste0("Could not parse term= in relation string: ", sra.relation, "\n"))
+        }
+        sra.identifier <- gsub("^.*term=([^\\/]+)$", "\\1", sra.relation)
+        cat(paste0("Parsed SRA identifier ", sra.identifier, " from ", relation.str, "\n"))
+        url <- listSRAfile(sra.identifier, con)$ftp
+        metadata.tbl$url[i] <- url
     }
   }
   
   d <- dbDisconnect(con)
 }
 
-write.table(metadata.tbl, sep="\t", quote=FALSE, row.names=FALSE, col.names=TRUE)
+cat("Outputting metadata file after resolving URLs to FTP sites\n")
+write.table(file = output.file, metadata.tbl, sep="\t", quote=FALSE, row.names=FALSE, col.names=TRUE)
 
 message("Successfully completed\n")
 q(status = 0)
